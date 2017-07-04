@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include "tztrng_test_pal.h"
+#include "FreeRTOS.h"
 
 void tztrngTest_pal_unmapCcRegs(unsigned long regBase)
 {
@@ -29,6 +30,16 @@ void tztrngTest_pal_unmapCcRegs(unsigned long regBase)
 unsigned long tztrngTest_pal_mapCcRegs(unsigned long hwBase)
 {
 	return hwBase;
+}
+
+void *tztrngTest_pal_malloc(size_t size)
+{
+	return (void *)pvPortMalloc(size);
+}
+
+void tztrngTest_pal_free(void *pvAddress)
+{
+	vPortFree(pvAddress);
 }
 
 int tztrngTest_pal_dumpData(unsigned char *large_buf, size_t outputlen)

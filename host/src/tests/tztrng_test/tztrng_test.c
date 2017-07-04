@@ -30,19 +30,43 @@
 #define TEST_VECTOR_SIZE_BYTES 			256
 #define LARGE_BUFFER_TEST_SIZE_BYTES 	10000
 
+/* Enables the output of the largeBuffer to uart/file */
+#define DUMP_DATA 						0
+
 void tztrngTest(void)
 {
 	int err, i, j;
 	int compare_buf[TEST_ITERATIONS] = { 0 };
-	unsigned char buf[TEST_VECTOR_SIZE_BYTES] = { 0 };
-	unsigned char largeBuf[LARGE_BUFFER_TEST_SIZE_BYTES] = { 0 };
 	unsigned int baseRngReg = 0;
 	size_t outputLen = LARGE_BUFFER_TEST_SIZE_BYTES;
 	int testVectorSize = TEST_VECTOR_SIZE_BYTES;
 	int testIterate = TEST_ITERATIONS;
+	unsigned char* buf;
+	unsigned char* largeBuf;
+
+	/* These buffers, buf and largeBuf, cannot be global since they need to be stored in a DMA-able address */
+	buf = tztrngTest_pal_malloc(TEST_VECTOR_SIZE_BYTES);
+	if (buf == NULL)
+	{
+		TZTRNG_PRINTF("failed to allocate buf %d bytes\n", TEST_VECTOR_SIZE_BYTES);
+		goto EndNoFree;
+	}
+
+	largeBuf = tztrngTest_pal_malloc(LARGE_BUFFER_TEST_SIZE_BYTES);
+	if (largeBuf == NULL)
+	{
+		TZTRNG_PRINTF("failed to allocate largeBuf %d bytes\n", LARGE_BUFFER_TEST_SIZE_BYTES);
+
+		/* free the successfully allocated buffer */
+		tztrngTest_pal_free(buf);
+
+		goto EndNoFree;
+	}
 
 	/* map register base addr */
 	baseRngReg = tztrngTest_pal_mapCcRegs(DX_BASE_RNG);
+	memset(largeBuf, 0, LARGE_BUFFER_TEST_SIZE_BYTES);
+	memset(buf, 0, TEST_VECTOR_SIZE_BYTES);
 
 	/* collect a large buffer */
 	TZTRNG_PRINTF("\nbaseReg[%p]\n", (void*)baseRngReg);
@@ -54,12 +78,12 @@ void tztrngTest(void)
 		goto End;
 	}
 
-#if 0
+#if DUMP_DATA
 	if (tztrngTest_pal_dumpData(largeBuf, outputLen) != 0)
 	{
 		TZTRNG_PRINTF("Failed to dump trng data\n");
 	}
-#endif /* 0 */
+#endif /* DUMP_DATA */
 
 	/* Collect and compare N buffers */
 	TZTRNG_PRINTF("start %d times test iterations\n", testIterate);
@@ -89,6 +113,10 @@ void tztrngTest(void)
 	TZTRNG_PRINTF("\nTest passed - received %d different buffers\n", i);
 
 End:
+	tztrngTest_pal_free(buf);
+	tztrngTest_pal_free(largeBuf);
+
+EndNoFree:
 	tztrngTest_pal_unmapCcRegs(baseRngReg);
 
 }

@@ -35,6 +35,26 @@ void tztrngTest_pal_unmapCcRegs(unsigned long regBase);
 unsigned long tztrngTest_pal_mapCcRegs(unsigned long regBase);
 
 /**
+ * @brief This function allocates "size" bytes.
+ *
+ * @param[in] size in bytes. *
+ * @param[out]
+ *
+ * @return pointer to the allocated memory.
+ */
+void *tztrngTest_pal_malloc(size_t size);
+
+/**
+ * @brief This function allocates "size" bytes.
+ *
+ * @param[in] size in bytes. *
+ * @param[out]
+ *
+ * @return pointer to the allocated memory.
+ */
+void tztrngTest_pal_free(void *pvAddress);
+
+/**
  * Dump the data from large_buf to OS specific output.
  *
  * @param large_buf

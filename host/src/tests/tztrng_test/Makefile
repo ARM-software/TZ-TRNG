@@ -1,7 +1,14 @@
 HOST_PROJ_ROOT ?= $(shell pwd)/../../..
 
+# this section is normaly defined by hosr/src/config. Since this makefile is the only one published we need to define these varainbles here
 ifeq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),arm-ds5 arm-none-eabi-))
 TEE_OS = freertos
+TEST_BOARD = mps2+
+TEST_PRODUCT = cc3x
+else 
+# TEE_OS = linux // Do not overwrite TEE_OS in case of linux values
+TEST_BOARD = zynq
+TEST_PRODUCT = cc3x
 endif
 
 include $(HOST_PROJ_ROOT)/Makefile.defs
@@ -12,44 +19,46 @@ DEPLIBS = cc_tztrng
 else
 TARGET_LIBS = tztrng_test
 TEST_INCLUDES += $(CURDIR)/tztrng_test.h
-
-INCDIRS_EXTRA += $(KERNEL_DIR)/OS/FreeRTOS/Source/include
-INCDIRS_EXTRA += $(KERNEL_DIR)/board/MPS2+
-INCDIRS_EXTRA += $(KERNEL_DIR)/lib/main
-INCDIRS_EXTRA += $(KERNEL_DIR)/OS/FreeRTOS/Source/portable/RVDS/ARM_CM3
-INCDIRS_EXTRA += $(KERNEL_DIR)/arch/cmsis/CMSIS/Include
-TEE_OS = freertos
 endif
 
-SOURCES_tztrng_test = tztrng_test.c
-SOURCES_tztrng_test += tztrng_test_pal.c 
+# This specific test should not run with linux pal layer.
+ifeq ($(TEE_OS),$(filter $(TEE_OS),freertos))
+include $(HOST_PROJ_ROOT)/Makefile.freertos
 
+ifneq ($(NO_PAL),1)
+include $(HOST_PROJ_ROOT)/Makefile.pal
+SOURCES_tztrng_test += tztrng_test_arm.c  
+# do not compile baord_configs since it is using a defile that is missong from the hw headers.
+SOURCES_tztrng_test += $(filter-out board_configs.c, $(PAL_SOOURCES))
+endif # pal
+endif # freertos
+
+# Sources
+SOURCES_tztrng_test += tztrng_test.c 
+SOURCES_tztrng_test += tztrng_test_pal.c  
+
+# Includes
+INCDIRS_EXTRA += $(SHARED_DIR)/hw/include
 INCDIRS_EXTRA += $(HOST_PROJ_ROOT)/src/tztrng_lib/include
 INCDIRS_EXTRA += $(CURDIR)/pal
-
-#since TEE_OS for linux is cc_linux the include dir is actually $(CURDIR)/pal/linux
-ifneq (,$(findstring linux,$(TEE_OS)))
-INCDIRS_EXTRA += $(CURDIR)/pal/linux
-else
-ifeq ($(CROSS_COMPILE),arm-none-eabi-)
-INCDIRS_EXTRA += $(CURDIR)/pal/freertos
-else
 INCDIRS_EXTRA += $(CURDIR)/pal/$(TEE_OS)
-endif 
+ifneq ($(NO_PAL),1)
+INCDIRS_EXTRA += $(HOST_LIBDIR) 
+INCDIRS_EXTRA += $(HOST_SRCDIR)/hal
+INCDIRS_EXTRA += $(HOST_SRCDIR)/hal/$(TEST_PRODUCT)
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/common
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/pal/include
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/hal/$(TEE_OS)
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/pal/include/$(TEE_OS)
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/hal/$(TEST_BOARD)/$(TEST_PRODUCT)
 endif
-INCDIRS_EXTRA += $(SHARED_DIR)/hw/include
 
+# External use PAL.. These files are going to be given to client
+VPATH += $(CURDIR)/pal
+VPATH += $(CURDIR)/pal/$(TEE_OS)
+# Internal use PAL
+VPATH += $(HOST_SRCDIR)/tests/hal/$(TEST_BOARD)/$(TEST_PRODUCT)
+VPATH += $(HOST_SRCDIR)/tests/pal/$(TEE_OS)
+VPATH += $(HOST_SRCDIR)/tests/common
 
 include $(HOST_PROJ_ROOT)/Makefile.rules
-# We should flatten the components source trees to avoid long search paths...
-VPATH += $(CURDIR)/pal
-ifneq (,$(findstring linux,$(TEE_OS)))
-VPATH += $(CURDIR)/pal/linux
-else
-ifeq ($(CROSS_COMPILE),arm-none-eabi-)
-VPATH += $(CURDIR)/pal/freertos
-else
-VPATH += $(CURDIR)/pal/$(TEE_OS)
-endif
-endif
-

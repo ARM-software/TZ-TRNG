@@ -1,0 +1,25 @@
+# designed to be used by any test in host/src/test that wishes to use the test pal layer.
+$(info adding pal of board[${TEST_BOARD}] product[${TEST_PRODUCT}] no_pal[${NO_PAL}])
+PAL_SOOURCES = test_pal_mem.c  test_pal_time.c  test_pal_thread.c  test_pal_map_addrs.c test_pal_cli.c board_configs.c 
+
+INCDIRS_EXTRA += $(SHARED_INCDIR)/pal 
+INCDIRS_EXTRA += $(SHARED_INCDIR)/pal/$(TEE_OS) 
+INCDIRS_EXTRA += $(SHARED_INCDIR)/pal/$(TEE_OS)/include
+
+ifneq ($(NO_PAL),1)
+INCDIRS_EXTRA += $(HOST_LIBDIR) 
+INCDIRS_EXTRA += $(HOST_SRCDIR)/hal
+INCDIRS_EXTRA += $(HOST_SRCDIR)/hal/$(TEST_PRODUCT)
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/common
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/pal/include
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/hal/$(TEE_OS)
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/pal/include/$(TEE_OS)
+INCDIRS_EXTRA +=  $(HOST_SRCDIR)/tests/hal/$(TEST_BOARD)/$(TEST_PRODUCT)
+
+# vpath
+# We should flatten the components source trees to avoid long search paths...
+# Internal use PAL
+VPATH += $(HOST_SRCDIR)/tests/hal/$(TEST_BOARD)/$(TEST_PRODUCT)
+VPATH += $(HOST_SRCDIR)/tests/pal/$(TEE_OS)
+VPATH += $(HOST_SRCDIR)/tests/common
+endif

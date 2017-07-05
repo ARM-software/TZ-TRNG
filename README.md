@@ -1,5 +1,3 @@
-[TOC]
-
 # Preface
 
 1. Proprietary notice
@@ -40,7 +38,7 @@
 		TRNG_test.c
 		shared/
 		host/  
-	* Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
+    * Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
 
 
@@ -117,7 +115,7 @@ This software release supports ARM TrustZone TRNG software.
 
 1. Tests run
 
-    See 2.b. "Step 4: deploy" above.
+    See "Step 4: deploy" above.
 
 1. Known issues
         

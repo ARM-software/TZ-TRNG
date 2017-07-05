@@ -11,12 +11,15 @@ TEST_BOARD = zynq
 TEST_PRODUCT = cc3x
 endif
 
+ifeq ($(NO_PAL),)
+NO_PAL=1
+endif
+
 include $(HOST_PROJ_ROOT)/Makefile.defs
 
 ifeq ($(TEE_OS),$(filter $(TEE_OS),linux cc_linux))
 TARGET_EXES = tztrng_test
 DEPLIBS = cc_tztrng
-TEE_OS = linux
 else
 TARGET_LIBS = tztrng_test
 TEST_INCLUDES += $(CURDIR)/tztrng_test.h
@@ -28,9 +31,9 @@ include $(HOST_PROJ_ROOT)/Makefile.freertos
 
 ifneq ($(NO_PAL),1)
 include $(HOST_PROJ_ROOT)/Makefile.pal
-SOURCES_tztrng_test += tztrng_test_arm.c 
+SOURCES_tztrng_test += tztrng_test_arm.c  
 # do not compile baord_configs since it is using a defile that is missong from the hw headers.
-SOURCES_tztrng_test += $(filter-out board_configs.c, $(PAL_SOOURCES))
+SOURCES_tztrng_test += $(filter-out board_configs.c, $(PAL_SOURCES))
 endif # pal
 endif # freertos
 

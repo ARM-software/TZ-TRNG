@@ -60,7 +60,7 @@ CONTENTS
 		TRNG_test.c
 		shared/
 		host/  
-    * Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
+	* Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
 
 
@@ -88,41 +88,51 @@ This software release supports ARM TrustZone TRNG software.
 
     Step 2: Define environment variables:
 				
-			export KERNEL_DIR=/path/to/freertos
-		or
-			export KERNEL_DIR=/path/to/linux
-			
-		depending on what the hw system target is running.
+	```bash
+    export KERNEL_DIR=/path/to/freertos
+    ```
+	or
+    ```bash
+	export KERNEL_DIR=/path/to/linux
+	```		
+	depending on what the hw system target is running.
 				
   
 	Step 3: Build all the binaries (common for FreeRTOS and Linux):
-		    cd /path/to/tztrng
-			make -C host/src/tztrng_lib/ clean
-			make -C host/src/tztrng_lib/
-			make -C host/src/tests/tztrng_test/ clean 
-			make -C host/src/tests/tztrng_test/ 
-				
-			The tztrng library is located in:
-	            host/lib/libcc_tztrng.a
+    ```bash
+	cd /path/to/tztrng
+	make -C host/src/tztrng_lib/ clean
+	make -C host/src/tztrng_lib/
+	make -C host/src/tests/tztrng_test/ clean 
+	make -C host/src/tests/tztrng_test/ 
+	```			
+	The tztrng library is located in:
+	```bash
+    host/lib/libcc_tztrng.a        
+    ```
 	
-			The integration test executable is located in the following path:
-	            - When compiling with gcc: host/bin/tztrng_test.
-	            - When compiling with armcc: host/lib/libtztrng_test.a.
+    The integration test executable is located in the following path:
+	- When compiling with gcc: host/bin/tztrng_test.
+	- When compiling with armcc: host/lib/libtztrng_test.a.
 
 
     Step 4: Deploy
 
-        For a target hw system running linux:
+    For a target hw system running linux:
 
-            Copy host/bin/tztrng_test to the target linux file system and exeute:
-                        ./tztrng_test
+    Copy host/bin/tztrng_test to the target linux file system and exeute:
+    ```bash
+    ./tztrng_test
+    ```
 
-		For a target hw system running FreeRTOS:
+	For a target hw system running FreeRTOS:
 
-				cp host/lib/libcc_tztrng.a /path/to/your/library/folder
-				cp host/lib/libtztrng_test.a /path/to/your/library/folder
-				cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
-
+	```bash
+    cp host/lib/libcc_tztrng.a /path/to/your/library/folder
+	cp host/lib/libtztrng_test.a /path/to/your/library/folder
+	cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
+    ```
+    
 # Validation
 
 1. Tests run

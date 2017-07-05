@@ -1,24 +1,4 @@
-CONTENTS
-
-    1. Preface
-
-        a. Proprietary notice
-        b. License details
-        c. Document confidentiality status
-        d. Product status
-        e. Web address
-
-    2. Release details
-
-        a. Prerequisites
-        b. Build procedure
-
-    3. Validation
-
-        a. Tests run
-        b. Known issues
-        c. Planned enhancements
-
+[TOC]
 
 # Preface
 

@@ -1,4 +1,7 @@
-# Preface
+# <center> ARM TrustZone True Number Generator </center>
+
+
+## Preface
 
 1. Proprietary notice
 
@@ -42,7 +45,7 @@
 
 
 
-# Release details
+## Release details
 
 This software release supports ARM TrustZone TRNG software.
 
@@ -111,7 +114,7 @@ This software release supports ARM TrustZone TRNG software.
 	cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
     ```
     
-# Validation
+## Validation
 
 1. Tests run
 

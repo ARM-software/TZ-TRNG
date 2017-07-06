@@ -1,36 +1,13 @@
 # ARM TrustZone True Number Generator
 
-
-## Preface
-
-1. Proprietary notice
-
-    Copyright (c) 2017 ARM Limited.
-
-1. License details
-
-    This product is licensed under the Apache-2.0 license. 
-	A copy of the license can be found at https://github.com/ARM-software/TZ-TRNG/blob/master/LICENSE
-
-1. Document confidentiality status
-
-    Redistribution of source and compiled code is subject to the license
-    details above.
-
-1. Product status
-		
-	ARM TrustZone TRNG supports 32-bit systems.
+ARM TrustZone TRNG supports 32-bit systems.
 
     This software product contains the following open source components:
 
     * ARM TrustZone TRNG driver.
     * ARM TrustZone TRNG integration test.
     * Characterization reference code.
-
-1. Web address 
-
-    URL:     https://github.com/ARM-software/TZ-TRNG
-		
+	
 
     Containing:
 
@@ -44,12 +21,16 @@
     * Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
 
+## License 
 
+    This software is provided under the Apache-2.0 license. Contributions to this project are accepted under the same license
+		
+	
 ## Release details
 
 This software release supports ARM TrustZone TRNG software.
 
-1. Prerequisites:
+### Prerequisites:
 
     * To be run on an Ubuntu 14.04 LTS system host for building. 
 
@@ -62,7 +43,7 @@ This software release supports ARM TrustZone TRNG software.
         Download the Software Bundle from the ARM github.com url mentioned in Preface subsection e.:
         unpack to an empty folder
 
-1. Build procedure
+### Build procedure
 
     Step 1: Open a terminal on the Ubuntu system and 'cd' into the folder
                 where you unpacked the software Bundle from the ARM github.com url.

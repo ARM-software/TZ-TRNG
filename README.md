@@ -1,145 +1,132 @@
-CONTENTS
+# ARM TrustZone True Number Generator
 
-    1. Preface
 
-        a. Proprietary notice
-        b. License details
-        c. Document confidentiality status
-        d. Product status
-        e. Web address
+## Preface
 
-    2. Release details
+1. Proprietary notice
 
-        a. Prerequisites
-        b. Build procedure
+    Copyright (c) 2017 ARM Limited.
 
-    3. Validation
+1. License details
 
-        a. Tests run
-        b. Known issues
-        c. Planned enhancements
+    This product is licensed under the Apache-2.0 license. 
+	A copy of the license can be found at https://github.com/ARM-software/TZ-TRNG/blob/master/LICENSE
 
-~~~~~
+1. Document confidentiality status
 
-1. Preface
+    Redistribution of source and compiled code is subject to the license
+    details above.
 
-    a. Proprietary notice
-
-        Copyright (c) 2017 ARM Limited.
-
-    b. License details
-
-        This product is licensed under the Apache-2.0 license. 
-		A copy of the license can be found at https://github.com/ARM-software/TZ-TRNG/blob/master/LICENSE
-
-    c. Document confidentiality status
-
-        Redistribution of source and compiled code is subject to the license
-        details above.
-
-    d. Product status
+1. Product status
 		
-		ARM TrustZone TRNG supports 32-bit systems.
+	ARM TrustZone TRNG supports 32-bit systems.
 
-        This software product contains the following open source components:
+    This software product contains the following open source components:
 
-            (*) ARM TrustZone TRNG driver.
-            (*) ARM TrustZone TRNG integration test.
-            (*) Characterization reference code.
+    * ARM TrustZone TRNG driver.
+    * ARM TrustZone TRNG integration test.
+    * Characterization reference code.
 
-    e. Web address 
+1. Web address 
 
-        URL:     https://github.com/ARM-software/TZ-TRNG
+    URL:     https://github.com/ARM-software/TZ-TRNG
 		
 
-        Containing:
+    Containing:
 
-            (*) READM.md (this file)
-            (*) Software and test build system:
-					build.props
-					proj.ext.cfg
-					TRNG_test.c
-					shared/
-					host/  
-			(*) Software Integration Manual (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
+    * READM.md (this file)
+    * Software and test build system:
+		build.props
+		proj.ext.cfg
+		TRNG_test.c
+		shared/
+		host/  
+    * Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
-~~~~~
 
-2. Release details
 
-    This software release supports ARM TrustZone TRNG software.
+## Release details
 
-    a. Prerequisites:
+This software release supports ARM TrustZone TRNG software.
 
-        (*) To be run on an Ubuntu 14.04 LTS system host for building. 
+1. Prerequisites:
 
-        (*) gcc version 4.7.3 or arm-ds5 compiler are in your PATH
+    * To be run on an Ubuntu 14.04 LTS system host for building. 
 
-        (*) in case of using linux as a host on the H/W, configure KERNEL_DIR environment variable to point to your
-            linux (s)
+    * gcc version 4.7.3 or arm-ds5 compiler are in your PATH
 
-        (*) the target is running linux kernel 4.4 or FreeRTOS
+    * in case of using linux as a host on the H/W, configure KERNEL_DIR environment variable to point to your linux (s)
 
-         Download the Software Bundle from the ARM github.com url mentioned in Preface subsection e.:
-            unpack to an empty folder
+    * the target is running linux kernel 4.4 or FreeRTOS
 
-   b. Build procedure
+        Download the Software Bundle from the ARM github.com url mentioned in Preface subsection e.:
+        unpack to an empty folder
 
-      Step 1: Open a terminal on the Ubuntu system and 'cd' into the folder
+1. Build procedure
+
+    Step 1: Open a terminal on the Ubuntu system and 'cd' into the folder
                 where you unpacked the software Bundle from the ARM github.com url.
 
-      Step 2: Define environment variables:
+    Step 2: Define environment variables:
 				
-				export KERNEL_DIR=/path/to/freertos
-			or
-				export KERNEL_DIR=/path/to/linux
-			
-			depending on what the hw system target is running.
+    ```bash
+    export KERNEL_DIR=/path/to/freertos
+    ```
+	or
+    ```bash
+	export KERNEL_DIR=/path/to/linux
+	```		
+	depending on what the hw system target is running.
 				
   
-	  Step 3: Build all the binaries (common for FreeRTOS and Linux):
-				cd /path/to/tztrng
-				make -C host/src/tztrng_lib/ clean
-				make -C host/src/tztrng_lib/
-				make -C host/src/tests/tztrng_test/ clean 
-				make -C host/src/tests/tztrng_test/ 
-				
-				The tztrng library is located in:
-	                host/lib/libcc_tztrng.a
+	Step 3: Build all the binaries (common for FreeRTOS and Linux):
+    ```bash
+	cd /path/to/tztrng
+	make -C host/src/tztrng_lib/ clean
+	make -C host/src/tztrng_lib/
+	make -C host/src/tests/tztrng_test/ clean 
+	make -C host/src/tests/tztrng_test/ 
+	```			
+	The tztrng library is located in:
+	```bash
+    host/lib/libcc_tztrng.a        
+    ```
 	
-				The integration test executable is located in the following path:
-	                - When compiling with gcc: host/bin/tztrng_test.
-	                - When compiling with armcc: host/lib/libtztrng_test.a.
+    The integration test executable is located in the following path:
+	- When compiling with gcc: host/bin/tztrng_test.
+	- When compiling with armcc: host/lib/libtztrng_test.a.
 
 
-      Step 4: Deploy
+    Step 4: Deploy
 
-                For a target hw system running linux:
+    For a target hw system running linux:
 
-                    Copy host/bin/tztrng_test to the target linux file system and exeute:
-                        ./tztrng_test
+    Copy host/bin/tztrng_test to the target linux file system and exeute:
+    ```bash
+    ./tztrng_test
+    ```
 
-				For a target hw system running FreeRTOS:
+	For a target hw system running FreeRTOS:
 
-					cp host/lib/libcc_tztrng.a /path/to/your/library/folder
-					cp host/lib/libtztrng_test.a /path/to/your/library/folder
-					cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
-~~~~~
+	```bash
+    cp host/lib/libcc_tztrng.a /path/to/your/library/folder
+	cp host/lib/libtztrng_test.a /path/to/your/library/folder
+	cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
+    ```
+    
+## Validation
 
-3. Validation
+1. Tests run
 
-    a. Tests run
+    See "Step 4: deploy" above.
 
-        See 2.b. "Step 4: deploy" above.
-
-    b. Known issues
+1. Known issues
         
-        None
+    None
 
-    c. Planned enhancements
+1. Planned enhancements
         
-        None
+    None
 
-~~~~~
 
 

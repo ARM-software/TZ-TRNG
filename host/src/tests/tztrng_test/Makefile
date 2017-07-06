@@ -20,6 +20,7 @@ include $(HOST_PROJ_ROOT)/Makefile.defs
 ifeq ($(TEE_OS),$(filter $(TEE_OS),linux cc_linux))
 TARGET_EXES = tztrng_test
 DEPLIBS = cc_tztrng
+TEE_OS=linux
 else
 TARGET_LIBS = tztrng_test
 TEST_INCLUDES += $(CURDIR)/tztrng_test.h

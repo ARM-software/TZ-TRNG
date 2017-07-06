@@ -1,4 +1,4 @@
-# <center> ARM TrustZone True Number Generator </center>
+# ARM TrustZone True Number Generator
 
 
 ## Preface
@@ -69,7 +69,7 @@ This software release supports ARM TrustZone TRNG software.
 
     Step 2: Define environment variables:
 				
-	```bash
+    ```bash
     export KERNEL_DIR=/path/to/freertos
     ```
 	or

@@ -1,0 +1,16 @@
+#
+# files to be ignored
+#
+
+/host/lib
+/host/bin
+/host/src/tztrng_lib/build*
+/host/src/tests/tztrng_test/build*
+/tags
+/TAGS
+
+makelog.txt
+
+# cscope files
+cscope.*
+

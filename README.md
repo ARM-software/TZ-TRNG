@@ -44,10 +44,10 @@ unpack to an empty folder
 
 ### Build procedure
 
-Step 1: Open a terminal on the Ubuntu system and 'cd' into the folder
+**Step 1**: Open a terminal on the Ubuntu system and 'cd' into the folder
         where you unpacked the software Bundle from the ARM github.com url.
 
-Step 2: Define environment variables:
+**Step 2**: Define environment variables:
 				
 ```bash
    export KERNEL_DIR=/path/to/freertos
@@ -60,7 +60,7 @@ or
 depending on what the hw system target is running.
 				
   
-Step 3: Build all the binaries (common for FreeRTOS and Linux):
+**Step 3**: Build all the binaries (common for FreeRTOS and Linux):
 ```bash
    cd /path/to/tztrng
    make -C host/src/tztrng_lib/ clean
@@ -78,21 +78,21 @@ The integration test executable is located in the following path:
    - When compiling with armcc: host/lib/libtztrng_test.a.
 
 
-Step 4: Deploy
-    For a target hw system running linux:
+**Step 4**: Deploy
+* For a target hw system running linux:
 
-    Copy host/bin/tztrng_test to the target linux file system and exeute:
-    ```bash
-    ./tztrng_test
-    ```
+  Copy host/bin/tztrng_test to the target linux file system and exeute:
+  ```bash
+     ./tztrng_test
+  ```
 
-    For a target hw system running FreeRTOS:
+* For a target hw system running FreeRTOS:
 
-    ```bash
-        cp host/lib/libcc_tztrng.a /path/to/your/library/folder
-	cp host/lib/libtztrng_test.a /path/to/your/library/folder
-	cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
-    ```
+  ```bash
+     cp host/lib/libcc_tztrng.a /path/to/your/library/folder
+     cp host/lib/libtztrng_test.a /path/to/your/library/folder
+     cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
+  ```
     
 ## Validation
 

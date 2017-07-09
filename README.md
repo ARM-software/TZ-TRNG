@@ -50,7 +50,7 @@ This software release supports ARM TrustZone TRNG software.
 
     Step 2: Define environment variables:
 				
-    ```{r, engine='bash'}
+    ```bash
     export KERNEL_DIR=/path/to/freertos
     ```
 	or

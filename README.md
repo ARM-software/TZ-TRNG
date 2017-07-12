@@ -35,9 +35,9 @@ This release contains the ARM TrustZone TRNG software.
 
 * gcc version 4.7.3 or arm-ds5 compiler are in your PATH.
 
-* In case of using linux as a host on the H/W, configure KERNEL_DIR environment variable to point to your linux (s).
+* If using Linux as a host on the H/W, configure the KERNEL_DIR environment variable to point to your Linux (s).
 
-* The target is running linux kernel 4.4 or FreeRTOS.
+* The target is running Linux kernel 4.4 or FreeRTOS.
 
 Download the software bundle from https://github.com/ARM-software/TZ-TRNG.
 
@@ -98,10 +98,10 @@ The integration test executable is located in the following path:
 
     See "Step 4: Deploy" above.
 
-2. Known issues
+1. Known issues
         
     None
 
-3. Planned enhancements
+1. Planned enhancements
         
     None

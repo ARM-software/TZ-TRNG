@@ -16,49 +16,47 @@ Containing:
     TRNG_test.c
     shared/
     host/  
-* Software Integration Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
+* Software Integrator's Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
 ARM TrustZone TRNG supports 32-bit systems.
 
 ## License 
 
-This software is provided under the Apache-2.0 license. Contributions to this project are accepted under the same license
+This software is provided under the Apache-2.0 license. Contributions to this project are accepted under the same license.
 		
 	
 ## Release details
 
-This software release supports ARM TrustZone TRNG software.
+This release contains the ARM TrustZone TRNG software.
 
 ### Prerequisites:
 
 * To be run on an Ubuntu 14.04 LTS system host for building. 
 
-* gcc version 4.7.3 or arm-ds5 compiler are in your PATH
+* gcc version 4.7.3 or arm-ds5 compiler are in your PATH.
 
-* in case of using linux as a host on the H/W, configure KERNEL_DIR environment variable to point to your linux (s)
+* In case of using linux as a host on the H/W, configure KERNEL_DIR environment variable to point to your linux (s).
 
-* the target is running linux kernel 4.4 or FreeRTOS
+* The target is running linux kernel 4.4 or FreeRTOS.
 
-Download the Software Bundle from the ARM github.com url mentioned in Preface subsection e.:
-unpack to an empty folder
+Download the software bundle from https://github.com/ARM-software/TZ-TRNG.
 
 ### Build procedure
 
-**Step 1**: Open a terminal on the Ubuntu system and 'cd' into the folder
-        where you unpacked the software Bundle from the ARM github.com url.
+**Step 1**: Open a terminal on the Ubuntu system, and use 'cd <path>' to go to the folder where you unpacked the software bundle from the ARM github url.
 
-**Step 2**: Define environment variables:
-				
+**Step 2**: Define environment variables, depending on what the hw system target is running:
+
+* For a target hw system running FreeRTOS:
 ```bash
    export KERNEL_DIR=/path/to/freertos
 ```
 or
+
+* For a target hw system running linux:
 ```bash
    export KERNEL_DIR=/path/to/linux
-```		
-
-depending on what the hw system target is running.
-				
+```				
   
 **Step 3**: Build all the binaries (common for FreeRTOS and Linux):
 ```bash
@@ -78,7 +76,7 @@ The integration test executable is located in the following path:
    - When compiling with armcc: host/lib/libtztrng_test.a.
 
 
-**Step 4**: Deploy
+**Step 4**: Deploy:
 * For a target hw system running linux:
 
   Copy host/bin/tztrng_test to the target linux file system and exeute:
@@ -98,15 +96,12 @@ The integration test executable is located in the following path:
 
 1. Tests run
 
-    See "Step 4: deploy" above.
+    See "Step 4: Deploy" above.
 
-1. Known issues
+2. Known issues
         
     None
 
-1. Planned enhancements
+3. Planned enhancements
         
     None
-
-
-

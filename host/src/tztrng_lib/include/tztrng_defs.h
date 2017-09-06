@@ -55,7 +55,7 @@ typedef enum {
 } CCBool;
 
 /* Definitions of temp buffer for DMA */
-#define CC_RND_WORK_BUFFER_SIZE_WORDS 1528
+#define CC_RND_WORK_BUFFER_SIZE_WORDS 528/4
 
 /* The CRYS Random Generator Parameters  structure CCRndParams_t -
    structure containing the user given Parameters */
@@ -201,9 +201,6 @@ void LLF_RND_TurnOffTrng(void);
 CCError_t LLF_RND_GetFastestRosc( CCRndParams_t *trngParams_ptr, uint32_t *rosc_ptr/*in/out*/);
 CCError_t LLF_RND_GetRoscSampleCnt( uint32_t rosc, CCRndParams_t *pTrngParams);
 uint32_t LLF_RND_TRNG_RoscMaskToNum(uint32_t mask);
-
-#define CC_RND_ESTIM_BUFF_SIZE_WORDS            386 /*256+128+2*/
-#define CC_RND_SRC_BUFF_OFFSET_WORDS  CC_RND_ESTIM_BUFF_SIZE_WORDS
 
 #define CC_RND_NOT_INSTANTIATED             	0UL
 #define CC_RND_INSTANTIATED                	    1UL

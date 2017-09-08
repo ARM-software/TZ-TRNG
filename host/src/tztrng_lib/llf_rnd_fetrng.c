@@ -152,7 +152,7 @@ CCError_t LLF_RND_GetTrngSource(
 
     /* Set source RAM address with offset 8 bytes from sourceOut address in
       order to remain empty bytes for CC operations */
-    *sourceOut_ptr_ptr = rndWorkBuff_ptr + CC_RND_SRC_BUFF_OFFSET_WORDS;
+    *sourceOut_ptr_ptr = rndWorkBuff_ptr;
     ramAddr = *sourceOut_ptr_ptr;
     /* init to 0 for FE mode */
     *sourceOutSize_ptr = 0;

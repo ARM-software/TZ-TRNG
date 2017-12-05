@@ -167,7 +167,7 @@ static CCError_t startTrngHW(
     /*--------------------------------------------------------------*/
     /* 2. Restart the TRNG and set  parameters              */
     /*--------------------------------------------------------------*/
-	
+
     /* in order to verify that the reset has completed the sample count need to be verified */
     do {
         /* set sampling ratio (rng_clocks) between consequtive bits */
@@ -234,7 +234,7 @@ static CCError_t getTrngSource(
 
     /* Set source RAM address with offset 8 bytes from sourceOut address in
       order to remain empty bytes for CC operations */
-    *sourceOut_ptr_ptr = rndWorkBuff_ptr + CC_RND_SRC_BUFF_OFFSET_WORDS;
+    *sourceOut_ptr_ptr = rndWorkBuff_ptr;
     ramAddr = *sourceOut_ptr_ptr;
 
     /* init to 0 for FE mode */

@@ -19,6 +19,7 @@ Containing:
 * Software Integrator's Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
 ARM TrustZone TRNG supports 32-bit systems.
+The `.mbedignore` file allows the driver to be used as it is for TRNG implementation in mbed OS. That file will make it work under 800-90B TRNG mode.
 
 ## License 
 

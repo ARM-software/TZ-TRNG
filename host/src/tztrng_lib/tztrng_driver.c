@@ -53,7 +53,7 @@ uint32_t CC_TrngGetSource(unsigned long rngRegBase, uint8_t *outAddr, size_t *ou
     CCRndState_t rndState = {0};
     uint32_t  *rndSrc_ptr;
     uint32_t  sourceOutSizeBytes = 0;
-    int requireBytes = (reqBits % 8) ? (reqBits / 8 + 1) : (reqBits / 8);
+    uint32_t requireBytes = (reqBits % 8) ? (reqBits / 8 + 1) : (reqBits / 8);
 
     if (NULL == outAddr || NULL == outLen) {
         TRNG_LOG_DEBUG("NULL pointer!!\n");
@@ -61,7 +61,7 @@ uint32_t CC_TrngGetSource(unsigned long rngRegBase, uint8_t *outAddr, size_t *ou
     }
 
     /* zeroe the rnd buff  */
-    tztrng_memset((uint8_t *)rndWorkBuff, 0, CC_RND_WORK_BUFFER_SIZE_WORDS * sizeof(uint32_t));
+    tztrng_memset((uint8_t *)rndWorkBuff, 0, sizeof(rndWorkBuff));
     tztrng_memset((uint8_t *)&rndParams, 0, sizeof(CCRndParams_t));
     gCcRegBase = rngRegBase;
 
@@ -99,14 +99,19 @@ uint32_t CC_TrngGetSource(unsigned long rngRegBase, uint8_t *outAddr, size_t *ou
         }
 
         /* try to reduce the memcpy */
-        if (requireBytes < (int)sourceOutSizeBytes)
+        if (requireBytes < sourceOutSizeBytes) {
             tztrng_memcpy(outAddr, (uint8_t *)rndSrc_ptr, requireBytes);
-        else
+            requireBytes = 0;
+        } else {
             tztrng_memcpy(outAddr, (uint8_t *)rndSrc_ptr, sourceOutSizeBytes);
+            requireBytes -= sourceOutSizeBytes;
+        }
 
-        requireBytes -= (int)sourceOutSizeBytes;
         outAddr += sourceOutSizeBytes;
     }
+
+    /* Clear the rndWorkBuff to not leave entropy on the stack */
+    tztrng_memset((uint8_t *)rndWorkBuff, 0, sizeof(rndWorkBuff));
 
     return Err;
 }

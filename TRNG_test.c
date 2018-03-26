@@ -1,14 +1,25 @@
+/******************************************************************************
+ * Copyright (c) 2017-2017, ARM, All Rights Reserved                           *
+ * SPDX-License-Identifier: Apache-2.0                                         *
+ *                                                                             *
+ * Licensed under the Apache License, Version 2.0 (the "License");             *
+ * you may not use this file except in compliance with the License.            *
+ *                                                                             *
+ * You may obtain a copy of the License at                                     *
+ * http://www.apache.org/licenses/LICENSE-2.0                                  *
+ *                                                                             *
+ * Unless required by applicable law or agreed to in writing, software         *
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT   *
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.            *
+ *                                                                             *
+ * See the License for the specific language governing permissions and         *
+ * limitations under the License.                                              *
+ ******************************************************************************/
 /**
  * @file TRNG_test.c
  *
  * This file defines the data collection function for characterization of the
- * Discretix TRNG.
- */
-/*
-* This confidential and proprietary software may be used only as authorised by a licensing agreement from ARM Israel.
-* Copyright (C) 2010 ARM Limited or its affiliates. All rights reserved.
-* The entire notice above must be reproduced on all authorized copies and copies may only be 
-* made to the extent permitted by a licensing agreement from ARM Israel.
+ * Arm TrustZone TRNG.
  */
 /*
  * Revision history:
@@ -18,7 +29,7 @@
  *                    Changed sampling rate metadata to 32-bit
  * 1.3 (09-Jun-2011): Added 8 bit processor support
  * 1.4 (07-Feb-2013): Only 192bit EHR support
- * 1.5 (03-Mar-2013): Replace isSlowMode with TRNGMode 
+ * 1.5 (03-Mar-2013): Replace isSlowMode with TRNGMode
  * 1.6 (06-Mar-2013): Support both DxTRNG and CryptoCell4.4
  * 1.7 (14-May-2015): Support for 800-90B
  * 1.8 (07-Oct-2015):  renamed DX to CC
@@ -36,12 +47,8 @@
 #define HW_RNG_VERSION_REG_ADDR             0x1C0UL
 #define HW_RNG_CLK_ENABLE_REG_ADDR          0x1C4UL
 
-/* @@@ */
-#define CryptoCell
-/* @@@ */
-
 typedef unsigned int DxUint32_t;
-/* report any compile errors in the next two lines to Discretix */
+/* report any compile errors in the next two lines to Arm */
 typedef int __testCharSize[((unsigned char)~0)==255?1:-1];
 typedef int __testDxUint32Size[(sizeof(DxUint32_t)==4)?1:-1];
 
@@ -81,7 +88,6 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
     unsigned int NumOfBlocks;
 
     /* Hardware parameters */
-    //DxUint32_t HwVersion;
     unsigned int EhrSizeInWords;
     unsigned int tmpSamplCnt = 0;
 
@@ -90,7 +96,6 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
     /* ............... local initializations .............................. */
     /* -------------------------------------------------------------------- */
 
-    //HwVersion = CC_GEN_ReadRegister( regBaseAddress, HW_RNG_VERSION_REG_ADDR );
     EhrSizeInWords = 6;
 
     /* ............... validate inputs .................................... */
@@ -112,7 +117,7 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
 	do{
 		/* enable the HW RND clock   */
 		CC_GEN_WriteRegister( regBaseAddress, HW_RNG_CLK_ENABLE_REG_ADDR, 0x1);
-		
+
 		/* set sampling ratio (rng_clocks) between consequtive bits */
 		CC_GEN_WriteRegister( regBaseAddress, HW_SAMPLE_CNT1_REG_ADDR, sampleCount);
 
@@ -129,7 +134,7 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
     {
         /* For fast TRNG: VNC_BYPASS + TRNG_CRNGT_BYPASS + AUTO_CORRELATE_BYPASS */
         CC_GEN_WriteRegister( regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR , 0x0000000E);
-    } 
+    }
 	 else if(TRNGMode == 2)//800-90B
     {
         /* For 800-90B TRNG: VNC_BYPASS + TRNG_CRNGT_BYPASS + AUTO_CORRELATE_BYPASS */
@@ -190,7 +195,7 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
     *(dataBuff_ptr++) = 0xDDCCBBAA;
 	/* check that no bit was skipped during collection */
     *(dataBuff_ptr++) = Error & 0x1;
-	
+
     *(dataBuff_ptr++) = 0xDDCCBBAA;
 
     /* disable the RND source  */
@@ -204,5 +209,4 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
 
     return Error;
 }
-
 

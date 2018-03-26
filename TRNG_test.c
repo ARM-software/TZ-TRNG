@@ -57,12 +57,11 @@ typedef int __testDxUint32Size[(sizeof(DxUint32_t)==4)?1:-1];
 
 #define CC_GEN_ReadRegister(base_addr, reg_addr)  ((volatile DxUint32_t*)(base_addr))[(reg_addr) / sizeof(DxUint32_t)]
 
-
 /**
  * Collect TRNG output for characterization
  *
  * @regBaseAddress:     Base address in system memory map of TRNG registers
- * @TRNGMode:           0 - FTRNG; 1 – MM TRNG driver; 2 – NIST TRNG driver
+ * @TRNGMode:           0 - FTRNG; 1 - MM TRNG driver; 2 - NIST TRNG driver
  * @roscLength:         Ring oscillator length (0 to 3)
  * @sampleCount:        Ring oscillator sampling rate
  * @buffSize:           Size of buffer passed in dataBuff_ptr; must be between 52 and 2^24 bytes
@@ -70,12 +69,12 @@ typedef int __testDxUint32Size[(sizeof(DxUint32_t)==4)?1:-1];
  *
  * The function's output is 0 if the collection succeeds, or a (non-zero) error code on failure.
  */
-int CC_TST_TRNG(    unsigned long regBaseAddress,
-                    unsigned int TRNGMode,
-                    unsigned int roscLength,
-                    unsigned int sampleCount,
-                    unsigned int buffSize,
-                    DxUint32_t *dataBuff_ptr)
+int CC_TST_TRNG(   unsigned long regBaseAddress,
+                   unsigned int TRNGMode,
+                   unsigned int roscLength,
+                   unsigned int sampleCount,
+                   unsigned int buffSize,
+                   DxUint32_t *dataBuff_ptr)
 {
     /* LOCAL DECLARATIONS */
 
@@ -101,52 +100,53 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
     /* ............... validate inputs .................................... */
     /* -------------------------------------------------------------------- */
 
-    if (buffSize < (7 + EhrSizeInWords) * sizeof(DxUint32_t)) return -1;
-    if (buffSize >= (1<<24)) return -1;
+    if (buffSize < (7 + EhrSizeInWords) * sizeof(DxUint32_t)) return - 1;
+    if (buffSize >= (1 << 24)) return - 1;
 
     /* ........... initializing the hardware .............................. */
     /* -------------------------------------------------------------------- */
 
-	/* enable the HW RND clock   */
-	CC_GEN_WriteRegister( regBaseAddress, HW_RNG_CLK_ENABLE_REG_ADDR, 0x1);
+    /* enable the HW RND clock   */
+    CC_GEN_WriteRegister(regBaseAddress, HW_RNG_CLK_ENABLE_REG_ADDR, 0x1);
 
 
     /* reset the RNG block */
-    CC_GEN_WriteRegister( regBaseAddress, HW_RNG_SW_RESET_REG_ADDR, 0x1 );
+    CC_GEN_WriteRegister(regBaseAddress, HW_RNG_SW_RESET_REG_ADDR, 0x1);
 
-	do{
-		/* enable the HW RND clock   */
-		CC_GEN_WriteRegister( regBaseAddress, HW_RNG_CLK_ENABLE_REG_ADDR, 0x1);
+    do {
+        /* enable the HW RND clock   */
+        CC_GEN_WriteRegister(regBaseAddress, HW_RNG_CLK_ENABLE_REG_ADDR, 0x1);
 
-		/* set sampling ratio (rng_clocks) between consequtive bits */
-		CC_GEN_WriteRegister( regBaseAddress, HW_SAMPLE_CNT1_REG_ADDR, sampleCount);
+        /* set sampling ratio (rng_clocks) between consequtive bits */
+        CC_GEN_WriteRegister(regBaseAddress, HW_SAMPLE_CNT1_REG_ADDR, sampleCount);
 
-		/* read the sampling ratio  */
-		tmpSamplCnt = CC_GEN_ReadRegister( regBaseAddress, HW_SAMPLE_CNT1_REG_ADDR );
-	}while (tmpSamplCnt != sampleCount);
+        /* read the sampling ratio  */
+        tmpSamplCnt = CC_GEN_ReadRegister(regBaseAddress, HW_SAMPLE_CNT1_REG_ADDR);
+    } while (tmpSamplCnt != sampleCount);
 
     /* enable the RNG clock  */
 
     /* configure RNG */
-    CC_GEN_WriteRegister( regBaseAddress, HW_TRNG_CONFIG_REG_ADDR, roscLength & 0x03 );
+    CC_GEN_WriteRegister(regBaseAddress, HW_TRNG_CONFIG_REG_ADDR, roscLength & 0x03);
 
-     if ( TRNGMode == 0 )
+    if (TRNGMode == 0)
     {
         /* For fast TRNG: VNC_BYPASS + TRNG_CRNGT_BYPASS + AUTO_CORRELATE_BYPASS */
-        CC_GEN_WriteRegister( regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR , 0x0000000E);
+        CC_GEN_WriteRegister(regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR, 0x0000000E);
     }
-	 else if(TRNGMode == 2)//800-90B
+    else if (TRNGMode == 2)//800-90B
     {
         /* For 800-90B TRNG: VNC_BYPASS + TRNG_CRNGT_BYPASS + AUTO_CORRELATE_BYPASS */
-        CC_GEN_WriteRegister( regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR , 0x0000000A);
-    }else if(TRNGMode == 1)
+        CC_GEN_WriteRegister(regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR, 0x0000000A);
+    }
+    else if (TRNGMode == 1)
     {
         /* For TRNGS: enable all hardware test blocks */
-        CC_GEN_WriteRegister( regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR , 0x00000000);
+        CC_GEN_WriteRegister(regBaseAddress, HW_TRNG_DEBUG_CONTROL_REG_ADDR, 0x00000000);
     }
 
     /* enable the RNG source  */
-    CC_GEN_WriteRegister( regBaseAddress, HW_RND_SOURCE_ENABLE_REG_ADDR, 0x1 );
+    CC_GEN_WriteRegister(regBaseAddress, HW_RND_SOURCE_ENABLE_REG_ADDR, 0x1);
 
     /* ........... executing the RND operation ............................ */
     /* -------------------------------------------------------------------- */
@@ -160,49 +160,45 @@ int CC_TST_TRNG(    unsigned long regBaseAddress,
     *(dataBuff_ptr++) = 0xAABBCCDD;
 
     /* The number of full blocks needed */
-    NumOfBlocks = (buffSize/sizeof(DxUint32_t) - 7) / EhrSizeInWords;
+    NumOfBlocks = (buffSize / sizeof(DxUint32_t) - 7) / EhrSizeInWords;
 
     Error = 0;
 
     /* fill the Output buffer with up to full blocks */
     /* BEGIN TIMING: start time measurement at this point */
-    for( i = 0 ; i < NumOfBlocks ; i++ )
+    for (i = 0; i < NumOfBlocks; i++)
     {
         DxUint32_t valid_at_start, valid;
         /*wait for RND ready*/
-        valid_at_start = CC_GEN_ReadRegister( regBaseAddress, HW_TRNG_VALID_REG_ADDR );
+        valid_at_start = CC_GEN_ReadRegister(regBaseAddress, HW_TRNG_VALID_REG_ADDR);
         valid = valid_at_start;
-        while( (valid & 0x3) == 0x0 )
-            valid = CC_GEN_ReadRegister( regBaseAddress, HW_RNG_ISR_REG_ADDR );
-        if ( (valid_at_start != 0) && (i != 0) ) Error = 1;
-        if ( (valid & ~1) != 0 ) Error |= (valid & ~1);
-		if ( Error & 0x2 ) break; /* autocorrelation error is irrecoverable */
-			CC_GEN_WriteRegister( regBaseAddress, HW_RNG_ICR_REG_ADDR, ~0 );
+        while ((valid & 0x3) == 0x0)
+            valid = CC_GEN_ReadRegister(regBaseAddress, HW_RNG_ISR_REG_ADDR);
+        if ((valid_at_start != 0) && (i != 0)) Error = 1;
+        if ((valid & ~1) != 0) Error |= (valid & ~1);
+        if (Error & 0x2) break; /* autocorrelation error is irrecoverable */
+            CC_GEN_WriteRegister(regBaseAddress, HW_RNG_ICR_REG_ADDR, ~0);
 
-        for (j=0;j<EhrSizeInWords;j++)
+        for (j = 0; j < EhrSizeInWords; j++)
         {
             /* load the current random data to the output buffer */
-            *(dataBuff_ptr++) = CC_GEN_ReadRegister( regBaseAddress, HW_EHR_DATA_ADDR_0_REG_ADDR+(j*sizeof(DxUint32_t)) );
+            *(dataBuff_ptr++) = CC_GEN_ReadRegister(regBaseAddress, HW_EHR_DATA_ADDR_0_REG_ADDR + (j * sizeof(DxUint32_t)));
         }
 
         // another read to reset the bits-counter
-        valid = CC_GEN_ReadRegister( regBaseAddress, HW_RNG_ISR_REG_ADDR );
-
+        valid = CC_GEN_ReadRegister(regBaseAddress, HW_RNG_ISR_REG_ADDR);
     }
     /* END TIMING: end time measurement at this point */
 
     /* Write trailer into buffer */
     *(dataBuff_ptr++) = 0xDDCCBBAA;
-	/* check that no bit was skipped during collection */
+    /* check that no bit was skipped during collection */
     *(dataBuff_ptr++) = Error & 0x1;
 
     *(dataBuff_ptr++) = 0xDDCCBBAA;
 
     /* disable the RND source  */
-    CC_GEN_WriteRegister( regBaseAddress, HW_RND_SOURCE_ENABLE_REG_ADDR, 0x0 );
-
-    /* close the Hardware clock */
-    //CC_GEN_WriteRegister( regBaseAddress, HW_RNG_CLK_ENABLE_REG_ADDR , 0x0 );
+    CC_GEN_WriteRegister(regBaseAddress, HW_RND_SOURCE_ENABLE_REG_ADDR, 0x0);
 
     /* .............. end of function ..................................... */
     /* -------------------------------------------------------------------- */

@@ -19,7 +19,6 @@ Containing:
 * Software Integrator's Manual   (trustzone_true_random_number_generator_software_integrators_manual_101049_0000_00_en.pdf)
 
 ARM TrustZone TRNG supports 32-bit systems.
-The `.mbedignore` file allows the driver to be used as it is for TRNG implementation in mbed OS. That file will make it work under 800-90B TRNG mode.
 
 ## License 
 
@@ -93,6 +92,16 @@ The integration test executable is located in the following path:
      cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
   ```
     
+### Mbed OS integration
+
+The `mbed-os.py` script facilitates the integration of the TZ-TRNG driver in a
+Mbed OS project. It removes the files inside the TZ-TRNG driver that are unused
+by Mbed OS and the FE-TRNG C files to use this driver in 800-90B TRNG mode.
+
+After the script is executed, this driver can be succesfully integrated and
+compiled in a Mbed OS project and the CC_TrngGetSource function can be called,
+for example in a Mbed OS HAL implementation for a new target.
+
 ## Validation
 
 1. Tests run

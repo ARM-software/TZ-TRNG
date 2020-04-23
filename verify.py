@@ -97,7 +97,7 @@ def check_format(path):
 
             sampleCnt = unpackui(args.fmt , f.read(4))
 
-            assert sampleCnt == int(re.match(r".*_R._S(.*)_V._T._C.*", path)[1]), "Sample counter value does not match the value in filename!"
+            assert sampleCnt == int(re.match(r".*_R._S(.*)_V._T._C.*", path).group(1)), "Sample counter value does not match the value in filename!"
 
             if args.verbose:
                 print("\tBuffer size: 0x%x,  Rosc length: %u,  TRNG mode: %u  Sample counter value: %u" % (buffSize, RoscLen, TRNGMode, sampleCnt))

@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>ROSC Advisor Online</title>
+        <script>
+            const SABABA_FACTOR = 10;
+            const RISE_FALL_DIFF_THRESHOLD = 2;
+            const PRIMES = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311];
+
+            class Lengths {
+                MIN_CHAIN = 3;
+                MAX_CHAIN = 200;
+                JSON_ID = 'ROSC_LENGTHS';
+                JSON_VALUE_KEYS = [ 'na_len', 'nb_len', 'nc_len', 'nt_len' ];
+                HTML_ID = [ 'na_len', 'nb_len', 'nc_len', 'nt_len' ];
+                constructor () {
+                    this.values = [0,0,0,0];
+                }
+                loadJson( parsedData ) {
+                    this.values = [0,0,0,0];
+                    for ( let i = 0; i < this.JSON_VALUE_KEYS.length; i++ ) {
+                        if ( parsedData.hasOwnProperty( this.JSON_VALUE_KEYS[i] ) ) {
+                            this.values[i] = parseInt( parsedData[this.JSON_VALUE_KEYS[i]] ); 
+                            try {
+                                let html_element = document.getElementById( this.HTML_ID[i] );
+                                if (html_element !== null) {
+                                    html_element.value = this.values[i];
+                                }
+                            } catch (err) {
+                                if ( err instanceof ReferenceError) {
+                                    // during testing document will not be defined
+                                } else {
+                                    throw err;
+                                }
+                            } 
+                        }
+                    }
+                }
+                loadUI() {
+                    this.values = [0,0,0,0];
+                    for ( let i = 0; i < this.HTML_ID.length; i++ ) {
+                        let html_element = document.getElementById( this.HTML_ID[i] );
+                        this.values[i] = parseInt( html_element.value );
+                    }
+                }
+                isValid( lengths = this.values ) {
+                    if ( lengths.length != this.HTML_ID.length ) {
+                        return false;
+                    } 
+                    for ( let i = 0; i < lengths.length; i++ ) {
+                        if ( lengths[i] == null || isNaN( lengths[i] ) ) {
+                            return false;
+                        }
+                        if (
+                            lengths[i]     == 0 ||                                       /* Length cannot be zero.     */
+                            lengths[i] % 2 == 0 ||                                       /* Length have to be odd.     */
+                            ( i < lengths.length-1 && lengths[i] >= lengths[i+1] )  /* Series must be increasing. */
+                        ) {
+                            return false;
+                        }
+                    }
+                    if ( lengths[0] < this.MIN_CHAIN || lengths[lengths.length-1] > this.MAX_CHAIN ) { /* Shortest and longest value checks. */
+                        return false;
+                    }
+                    return true;
+                }
+
+                JSON( i = '', t = '  ' ) {
+                    let json = ''+i+'\"'+ this.JSON_ID +'\":{'+i+t;
+                    for ( let j = 0; j < this.values.length; j++ ) {
+                        json += ((j!=0)?',':'')+'\n'+i+t+t+'\"'+this.JSON_VALUE_KEYS[j]+'\":'+this.values[j];
+                    }
+                    return json+'\n'+i+'}';
+                }
+                generate( na = this.MIN_CHAIN ) {
+                    let optimizedLengths = [na];
+                    for ( let i = 0; i < PRIMES.length; i++ ) {
+                        if ( PRIMES[i] > optimizedLengths[ optimizedLengths.length - 1 ] + 7 ) {
+                            optimizedLengths.push( PRIMES[i] );
+                        }
+                        if( optimizedLengths.length >= this.HTML_ID.length ) break;
+                    }
+                    if ( this.isValid(optimizedLengths) ) {
+                        this.values = optimizedLengths;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+                toString( ) {
+                    return JSON.stringify( this.values );
+                }
+            }
+
+            class Corner {
+
+                pr = 'corner-';
+                pc = 'DFF delays';
+                pd = 'propagation';
+                kc = [ 'dff_setup_rise', 'dff_setup_fall', 'dff_hold_rise', 'dff_hold_fall' ];
+                ic = [ 'dff_setup_rise', 'dff_setup_fall', 'dff_hold_rise', 'dff_hold_fall' ];
+                kd = [ 'na_rise', 'na_fall', 'nb_rise', 'nb_fall', 'nc_rise', 'nc_fall', 'nt_rise', 'nt_fall' ];
+                id = [ 'na_rise', 'na_fall', 'nb_rise', 'nb_fall', 'nc_rise', 'nc_fall', 'nt_rise', 'nt_fall' ];
+                constructor ( parsedData, c = 0 ) {
+                    this.c = [0,0,0,0]
+                    this.d = [0,0,0,0,0,0,0,0];
+                    this.i = c;
+                    if ( typeof parsedData === "number" && parsedData >= 0 && parsedData < num_corners ) { /* Grab from DOM */
+                        this.i = parsedData;
+                        for ( var i = 0; i < this.ic.length; i++ ) {
+                            this.c[i] = parseFloat( document.getElementById( this.pr+parsedData+'-'+this.ic[i] ).value );
+                        }
+                        for ( var i = 0; i < this.id.length; i++ ) {
+                            this.d[i] = parseFloat( document.getElementById( this.pr+parsedData+'-'+this.id[i] ).value );
+                        }
+                    }
+                    if ( typeof parsedData === "object" && parsedData != null ) {         /* Grab from parsed JSON object. */
+                        var p1 = this.i2p( c );
+                        var tmp=[];
+                        if ( c > num_corners - 1 ) {
+                            for ( var i = num_corners; i <= c; i++ ) {
+                                try {
+                                    addCorner();
+                                } catch (err) {
+                                    if ( err instanceof ReferenceError) {
+                                        // during testing document will not be defined
+                                    } else {
+                                        throw err;
+                                    }
+                                } 
+                                tmp.push(i);
+                            }
+                        }
+                        if ( parsedData.hasOwnProperty( p1 ) ) {
+                            if ( parsedData[p1].hasOwnProperty( this.pc ) ) {
+                                for ( var i = 0; i < this.kc.length; i++ ) {
+                                    if ( parsedData[p1][this.pc].hasOwnProperty( this.kc[i] ) ) {
+                                        try {
+                                            document.getElementById( this.pr+c+'-'+this.ic[i] ).value = parsedData[p1][this.pc][ this.kc[i] ];
+                                        } catch (err) {
+                                            if ( err instanceof ReferenceError) {
+                                                // during testing document will not be defined
+                                            } else {
+                                                throw err;
+                                            }
+                                        } 
+                                        this.c[i] = parsedData[p1][this.pc][ this.kc[i] ];
+                                    }
+                                }
+                            }
+                            if ( parsedData[p1].hasOwnProperty( this.pd ) ) {
+                                for ( var i = 0; i < this.kd.length; i++ ) {
+                                    if ( parsedData[p1][this.pd].hasOwnProperty( this.kd[i] ) ) {
+                                        try {
+                                            document.getElementById( this.pr+c+'-'+this.id[i] ).value = parsedData[p1][this.pd][ this.kd[i] ];
+                                        } catch (err) {
+                                            if ( err instanceof ReferenceError) {
+                                                // during testing document will not be defined
+                                            } else {
+                                                throw err;
+                                            }
+                                        } 
+                                        this.d[i] = parsedData[p1][this.pd][ this.kd[i] ];
+                                    }
+                                }
+                            }
+                        } else {
+                            for ( var j = 0; j < tmp.length; j++ ) {
+                                try {
+                                    removeCorner( { id: 'corner-'+tmp[j]} );
+                                } catch (err) {
+                                    if ( err instanceof ReferenceError) {
+                                        // during testing document will not be defined
+                                    } else {
+                                        throw err;
+                                    }
+                                } 
+                            }
+                        }
+                    }
+                }
+                i2p( i = 0 ) {
+                    return (i==0)?'Typical':(i==1)?'Best':(i==2)?'Worst':'Corner '+i;
+                }
+                dff_t( ) {
+                    var t = 0;
+                    for ( var i = 0; i < this.c.length; i++ ) {
+                        t+=this.c[i];
+                    }
+                    return t;
+                }
+                periods( ) {
+                    var p = [];
+                    for( var i = 0; i < this.d.length/2; i++ ) {
+                        p[i] = this.d[i*2] + this.d[i*2+1];
+                    }
+                    return p;
+                }
+                isValid( ) {
+                    for ( var i = 0; i < this.c.length; i++ ) {
+                        if ( typeof this.c[ i ] !== "number" || Number.isNaN(this.c[ i ]) ) {
+                            return false;
+                        }
+                    }
+                    for ( var i = 0; i < this.d.length; i++ ) {
+                        if ( 
+                            typeof this.d[i] !== "number" || 
+                            this.d[i] <=0 || 
+                            ( ( i > 1 ) && this.d[ i-2 ] >= this.d[ i ] ) 
+                        ) { 
+                            return false;
+                        }
+                    }
+                    var diff;
+                    var m = 1 / RISE_FALL_DIFF_THRESHOLD;
+                    for ( var i = 0; i < 3; i++ ) {
+                        diff = this.d[ i * 2 ] / this.d[ i * 2 + 1 ];
+                        if ( 
+                            diff > RISE_FALL_DIFF_THRESHOLD ||
+                            diff < m
+                        ) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                tune( na ) {
+                    var dff_t = this.dff_t();
+                    var p = this.periods();
+                    var r = { res_tuned: 0, valid: true };
+                    for ( var i = 0; i < p.length; i++ ) {
+                        if ( p[i] < 10 * dff_t ) { r.valid = false; break; }
+                    }
+                    r.res_tuned = Math.ceil( na / ( p[ 0 ] / ( 10 * dff_t ) ));
+                    for ( var i = 0; i < PRIMES.length; i++ ) {
+                        if ( PRIMES[i] > r.res_tuned * 1.1 && PRIMES[i] > r.res_tuned+7 ) {
+                            r.res_tuned = PRIMES[i];
+                            break;
+                        }
+                    }
+                    return r;
+                }
+                JSON( i='', t='  ' ) {
+                    var json = ''+i+'\"'+this.i2p(this.i)+'\":{\n'+i+t+'\"'+this.pc+'\":{';
+                    for ( var j = 0; j < this.c.length; j++ ) {
+                        json += ((j!=0)?',':'')+'\n'+i+t+t+'\"'+this.kc[j]+'\":'+this.c[j];
+                    }
+                    json+='\n'+i+t+'},\n'+i+t+'\"'+this.pd+'\":{';
+                    for ( var j = 0; j < this.d.length; j++ ) {
+                        json += ((j!=0)?',':'')+'\n'+i+t+t+'\"'+this.kd[j]+'\":'+this.d[j];
+                    }
+                    return json+'\n'+i+t+'}\n'+i+'}';
+                }
+            }
+
+            class Data {
+                constructor () {
+                    this.lengths = new Lengths();
+                    this.corners = [];
+                }
+                getCornerNumber() {
+                    return this.corners.length;
+                }
+
+                loadJson( parsedData ) {
+                    if (typeof parsedData === 'object') {
+                        while (num_corners > 0) {
+                                removeCorner( { id: 'corner-0'} );
+                        }
+                        let contains_lengths = parsedData.hasOwnProperty( this.lengths.JSON_ID );
+                        if ( contains_lengths ) {
+                            this.lengths.loadJson( parsedData[this.lengths.JSON_ID] )
+                            // corners
+                            this.corners = [];
+                            let indices = [];
+                            for ( var i in parsedData ) {
+                                indices.push(this.p2i(i));
+                            }
+                            indices.sort();
+                            for( let i = 0; i < indices.length; i++ ) {
+                                if ( indices[i] !== NaN ) {
+                                    this.corners.push( new Corner( parsedData, indices[i] ) );
+                                }
+                            }
+                        } else {
+                            // handle error - mandatory field
+                        }
+                    }
+                }
+                loadUI() {
+                    this.lengths.loadUI();
+                    this.corners = [];
+                    for ( let i = 0; i < num_corners; i++ ) {
+                        this.corners.push( new Corner(i) );
+                    }
+                }
+
+                p2i( p = 'Typical' ) {
+                    return ( p == 'Typical' ) ? 0 : ( p == 'Best' ) ? 1 : ( p == 'Worst') ? 2 : parseInt( p.replace( "Corner ", "" ) );
+                }
+                JSON( i = '', t = '  ' ) {
+                    let json = ''+i+'{\n'+i+this.lengths.JSON(i+t,t);
+                    for ( let j = 0; j < this.corners.length && j < num_corners; j++ ) {
+                        json += ',\n'+i+this.corners[j].JSON(i+t,t);
+                    }
+                    return json+'\n'+i+'}';
+                }
+            }
+            // variables
+            var dataModel = new Data();
+            var num_corners = 0;
+
+            // for regression testing
+            var resultCode = 0;
+            var resultLengths = [0,0,0,0];
+            function getResultCode() {
+                return resultCode;
+            }
+            function getResultLengths() {
+                return resultLengths;
+            }
+
+            var tooltipsEnabled = true;
+            function toggleTooltips() {
+                if (tooltipsEnabled) {
+                    tooltipsEnabled = false;
+                    let elements = document.querySelectorAll("[tooltip-data]");
+                    elements.forEach( (element) => {
+                        element.classList.add("tooltip-disabled");
+                    });
+                } else {
+                    tooltipsEnabled = true;
+                    let elements = document.querySelectorAll("[tooltip-data]");
+                    elements.forEach( (element) => {
+                        element.classList.remove("tooltip-disabled");
+                    });
+                }
+            }
+
+            function removeCorner( o ) {
+                var prefix = ["Typical / ","Best / ","Worst / ",""];
+                var optional = [ "Mandatory", "Optional" ];
+                var i = parseInt( o.id.replace( "corner-", "" ) );
+                document.getElementById( 'corner-' + i ).parentNode.removeChild( document.getElementById( 'corner-' + i ) );
+                for ( var j = i + 1; j < num_corners; j++ ) {
+                    var keys = [ 'dff_setup_rise', 'dff_setup_fall', 'dff_hold_rise', 'dff_hold_fall', 'na_rise', 'na_fall', 'nb_rise', 'nb_fall', 'nc_rise', 'nc_fall', 'nt_rise', 'nt_fall' ];
+                    document.getElementById( 'corner-' + j ).id = 'corner-'+(j - 1);
+                    document.getElementById( 'corner-' + j + '-remove' ).id = 'corner-'+(j - 1)+'-remove';
+                    document.getElementById( 'corner-' + j + '-title' ).innerHTML = prefix[((j-1)<3)?(j-1):3]+'Corner '+(j-1)+' ('+optional[((j-1)<1)?0:1]+')';
+                    document.getElementById( 'corner-' + j + '-title' ).id = 'corner-'+(j - 1)+'-title';
+                    for ( var k=0; k < keys.length; k++ ) {
+                        document.getElementById( 'corner-' + j + '-' + keys[k] ).id = 'corner-' + (j-1) + '-' + keys[k];
+                    }
+                }
+                num_corners--;
+                if( num_corners > 2 ) {
+                    document.getElementById('cornerInputs').style="";
+                }
+                if( num_corners == 2 ) {
+                    document.getElementById('cornerInputs').style="grid-template-columns: auto auto;";
+                }
+                if( num_corners == 1 ) {
+                    document.getElementById('cornerInputs').style="grid-template-columns: auto;";
+                }
+            }
+            function addCorner( ) {
+                var prefix = ["Typical / ","Best / ","Worst / ",""];
+                var optional = [ "Mandatory", "Optional" ];
+                var e = document.createElement('div');
+                e.id='corner-'+num_corners;
+                e.classList.add('corner');
+                document.getElementById("cornerInputs").appendChild( e );
+                document.getElementById("corner-"+num_corners).innerHTML = '<div id="corner-'+num_corners+'-title">'+prefix[(num_corners<3)?num_corners:3]+'Corner '+num_corners+' ('+optional[(num_corners<1)?0:1]+')</div>' +
+                        '<div class="dff">' + 
+                            '<span class="rise">Rise [ns]</span><span>Fall [ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Sampling&nbsp;DFF&nbsp;setup&nbsp;times&nbsp;for&nbsp;Rise&nbsp;and&nbsp;Fall. Can be obtained from data vs. clock path in the relevant .lib file of the chosen cell and technology.">Setup</span><input id="corner-'+num_corners+'-dff_setup_rise" type="text" /><input id="corner-'+num_corners+'-dff_setup_fall" type="text" />' +
+                            '<span class="tooltip-to-right" tooltip-data="Sampling&nbsp;DFF&nbsp;hold&nbsp;times&nbsp;for&nbsp;Rise&nbsp;and&nbsp;Fall. Can be obtained from data vs. clock path in the relevant .lib file of the chosen cell and technology.">Hold</span><input id="corner-'+num_corners+'-dff_hold_rise" type="text" /><input id="corner-'+num_corners+'-dff_hold_fall" type="text" />' +
+                        '</div><br>' +
+                        '<div class="inv">' + 
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Na Rise:</span><input id="corner-'+num_corners+'-na_rise" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Na Fall:</span><input id="corner-'+num_corners+'-na_fall" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Nb Rise:</span><input id="corner-'+num_corners+'-nb_rise" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Nb Fall:</span><input id="corner-'+num_corners+'-nb_fall" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Nc Rise:</span><input id="corner-'+num_corners+'-nc_rise" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Nc Fall:</span><input id="corner-'+num_corners+'-nc_fall" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Nt Rise:</span><input id="corner-'+num_corners+'-nt_rise" type="text" /><span>[ns]</span>' +
+                            '<span class="tooltip-to-right" tooltip-data="Accumulated&nbsp;delay&nbsp;of&nbsp;the&nbsp;chain from STA report">Nt Fall:</span><input id="corner-'+num_corners+'-nt_fall" type="text" /><span>[ns]</span>' +
+                        '</div>' +
+                        ((num_corners!=0)?'<button id="corner-'+num_corners+'-remove" class="sign tooltip-to-left" tooltip-data="Remove&nbsp;this&nbsp;corner" onclick="javascript:removeCorner(this)">-</button>':'');
+                
+                if ( num_corners != 0 ) { 
+                    document.getElementById( "corner-" + num_corners + "-remove" ).onclick=function( ) { removeCorner( this ); };
+                }
+                num_corners++;
+                if( num_corners > 2 ) {
+                    document.getElementById('cornerInputs').style="";
+                }
+                if( num_corners == 2 ) {
+                    document.getElementById('cornerInputs').style="grid-template-columns: auto auto;";
+                }
+                if( num_corners == 1 ) {
+                    document.getElementById('cornerInputs').style="grid-template-columns: auto;";
+                }
+            }
+            function load( ) {
+                document.getElementById( 'input' ).click();
+            }
+            function parseFile(event) {
+                var file = event.target.files[0];
+                var reader = new FileReader();
+                reader.onload = function (loadevent) {
+                    result_html_element = document.getElementById('results');
+                    try {
+                        parsedData = JSON.parse( loadevent.target.result ); 
+                    } catch ( err ) {
+                        if ( result_html_element !== null) {
+                            result_html_element.innerHTML = "Could not parse the contents of "+ file.name;
+                        }
+                        return;
+                    }
+                    dataModel.loadJson(parsedData);
+                    if ( result_html_element !== null) {
+                        result_html_element.innerHTML = "Successfully loaded "+ file.name;
+                    }
+                };
+                reader.readAsText(file);
+            }
+            function parseFileNode(parsedObj) {
+                dataModel.loadJson(parsedObj);
+            }
+
+            function analyze( ) {
+                result_html_element = null;
+                try {
+                    result_html_element = document.getElementById('results');
+                } catch (err) {
+                    if ( err instanceof ReferenceError) {
+                        // during testing document will not be defined
+                    } else {
+                        throw err;
+                    }
+                } 
+                if( dataModel.lengths.isValid() ) {
+                    var na = dataModel.lengths.values[0];
+                    var valid_exists = false;
+                    var min_length = 0;
+                    var all_pass = true;
+                    for ( var i = 0; i < dataModel.getCornerNumber(); i++ ) {
+                        let cornerIsValid = dataModel.corners[ i ].isValid();
+                        if (cornerIsValid) {
+                            valid_exists = true;
+                            let res = dataModel.corners[i].tune( na );
+                            if ( !res.valid ) {
+                                all_pass = false;
+                            }
+                            if ( res.res_tuned > min_length ) {
+                                min_length = res.res_tuned;
+                            }
+                        }
+
+                        let html_element = null;
+                        try {
+                            html_element = document.getElementById('corner-'+i+'-title');
+                        } catch (err) {
+                            if ( err instanceof ReferenceError) {
+                                // during testing document will not be defined
+                            } else {
+                                throw err;
+                            }
+                        }
+                        if (html_element !== null) {
+                            if ( cornerIsValid ) {
+                                html_element.style.color="#95d600";
+                            } else {
+                                html_element.style.color="#ff6b00";
+                            }
+                        }
+                    }
+                    if ( valid_exists ) {
+                            if ( all_pass ) {
+                                if ( min_length + SABABA_FACTOR < na ) {
+                                    if ( dataModel.lengths.generate(min_length) ) {
+                                        if (result_html_element !== null) {
+                                            result_html_element.innerHTML = "Current ROSC lengths will work, but can be fine-tuned to: " + dataModel.lengths.toString( );
+                                        }
+                                        resultCode = 1;
+                                        resultLengths = dataModel.lengths.values;
+                                    } else {
+                                        if (result_html_element !== null) {
+                                            result_html_element.innerHTML = "Current ROSC lengths are optimized!";
+                                        }
+                                        resultCode = 2;
+                                        resultLengths = dataModel.lengths.values;
+                                    } 
+                                } else {
+                                    if (result_html_element !== null) {
+                                        result_html_element.innerHTML = "Current ROSC lengths are optimized!";
+                                    }
+                                    resultCode = 2;
+                                    resultLengths = dataModel.lengths.values;
+                                }
+                            } else {
+                                if ( dataModel.lengths.generate(min_length) ) {
+                                    if (result_html_element !== null) {
+                                        result_html_element.innerHTML = "WARNING: Current ROSC lengths are too fast for DFF and must be changed to: " + dataModel.lengths.toString( );
+                                    }
+                                    resultCode = 3;
+                                    resultLengths = dataModel.lengths.values;
+                                } else {
+                                    resultCode = 0;
+                                    resultLengths = dataModel.lengths.values;
+                                    if (result_html_element !== null) {
+                                        result_html_element.innerHTML = "Current ROSC lengths are too fast for DFF and must be changed, but could not tune the lengths using the current length limits ["+(dataModel.lengths.MIN_CHAIN)+","+(ataModel.lengths.MAX_CHAIN)+"]!";
+                                    }
+                                }
+                            }
+
+                    } else {
+                        if (result_html_element !== null) {
+                            result_html_element.innerHTML = "All corners are invalid!";
+                        }
+                        resultCode = 4;
+                    }
+                } else {
+                    if (result_html_element !== null) {
+                        result_html_element.innerHTML = "Input ROSC lengths are invalid!";
+                    }
+                    resultCode = 5;
+                }
+            }
+            function onAnalyzeClicked() {
+                dataModel.loadUI();
+                analyze();
+            }
+            function save( ) {
+                var fileName = "ROSC.json";
+                fileName  = prompt( "Specify the output file name:", fileName  );
+                if ( fileName  == null || fileName  == "" ) {
+                    fileName  = "";
+                }
+                var file = new Blob( [ dataModel.JSON('','    ') ], { type: 'application/json' } );
+                if ( window.navigator.msSaveOrOpenBlob ) {
+                    window.navigator.msSaveOrOpenBlob( file, fileName );
+                } else {
+                    var a = document.createElement( "a" ),
+                            url = URL.createObjectURL( file );
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild( a );
+                    a.click( );
+                    setTimeout(function( ) {
+                        document.body.removeChild( a );
+                        window.URL.revokeObjectURL( url );  
+                    }, 0); 
+                }
+            }
+            function loaded( ) {
+                if ( !( window.File && window.FileReader && window.FileList && window.Blob ) ) {
+                    alert('The File APIs are not fully supported in this browser.');
+                }
+                add_html_element = document.getElementById("add");
+                if (add_html_element !== null) {
+                    add_html_element.onclick=addCorner;
+                    addCorner( );
+                    addCorner( );
+                    addCorner( );
+                }    
+            }
+        </script>
+        <style>
+            [tooltip-data] {
+                position: relative;
+            }
+            [tooltip-data]:before {
+                content: attr(tooltip-data);
+                position: absolute;
+                bottom: -60px;
+                left: 50%;
+                padding: 10px;
+                border-radius: 8px;
+                transform: translateX(-50%) scale(0);
+                transition: transform 0.3s ease-in-out;
+                transform-origin: top center;
+                background: #616161e6;
+                color: white;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 1;
+            }
+            [tooltip-data]:after {
+                content: "?";
+                position: absolute;
+                top: -0.8em;
+                left: -0.25em;
+                transform: scale(0.7);
+            }
+            [tooltip-data]:hover:before {
+                transform: translateX(-50%) scale(1);
+            }
+            [tooltip-data].tooltip-to-top:before {
+                top: -60px;
+                bottom: auto;
+                transform-origin: bottom center;
+            }
+            [tooltip-data].tooltip-to-right:before {
+                left: auto;
+                right: -10px;
+                bottom: auto;
+                top: 50%;
+                transform: translate(100%, -50%) scale(0);
+                transform-origin: left center;
+            }
+            [tooltip-data].tooltip-to-right:hover:before {
+                transform: translate(100%, -50%) scale(1);
+            }
+            [tooltip-data].tooltip-to-left:before {
+                left: -15px;
+                right: auto;
+                bottom: auto;
+                top: 50%;
+                transform: translate(-100%, -50%) scale(0);
+                transform-origin: right center;
+            }
+            [tooltip-data].tooltip-to-left:hover:before {
+                transform: translate(-100%, -50%) scale(1);
+            }
+            [tooltip-data].tooltip-disabled:before,[tooltip-data].tooltip-disabled:after{
+                display: none;
+            }
+            /* latin-ext */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 300;
+              src: local('Lato Light'), local('Lato-Light'), url(https://fonts.gstatic.com/s/lato/v16/S6u9w4BMUTPHh7USSwaPGR_p.woff2) format('woff2');
+              unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 300;
+              src: local('Lato Light'), local('Lato-Light'), url(https://fonts.gstatic.com/s/lato/v16/S6u9w4BMUTPHh7USSwiPGQ.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            /* latin-ext */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 400;
+              src: local('Lato Regular'), local('Lato-Regular'), url(https://fonts.gstatic.com/s/lato/v16/S6uyw4BMUTPHjxAwXjeu.woff2) format('woff2');
+              unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 400;
+              src: local('Lato Regular'), local('Lato-Regular'), url(https://fonts.gstatic.com/s/lato/v16/S6uyw4BMUTPHjx4wXg.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            #rosc-container, body, html {
+                width : 100%;
+                height: 100%;
+                overflow: hidden; 
+                padding : 0;
+                margin : 0;
+                border : 0;
+                font-size : 25px;
+                text-align: center;
+                font-family: 'Lato';
+                background-color: #e5eceb;
+            }
+            #rosc-container #corners span {
+                width:100%;
+                text-align: center;
+                font-size: 0.7em;
+                line-height: calc( 1em + 13px );
+                font-weight: 700;
+            }
+            #corners > #cornerInputs div[id^="corner-"][id$="-title"] {
+                font-weight: 700;
+                font-size: 0.8em;
+                text-align: center;
+                padding-top: 1em;
+                width:100%;
+            }
+            #rosc-container p {
+                padding:0;
+                margin:0;
+                border:0;
+            }
+            #rosc-container input {
+                border:1px solid #333e48;
+                border-radius: 5px;
+                background-image:none;
+                -webkit-box-shadow: none;
+                -moz-box-shadow: none;
+                box-shadow: none;
+                padding: 5px;
+            }
+            #rosc-container #rosc-lengths {
+                width: 100%;
+                height: auto;
+                padding-bottom: 0.2em;
+                position: absolute;
+                background-color: #0091bd;
+                color: #ffffff;
+                left:0;
+                top:0;
+            }
+            #rosc-lengths-title {
+                font-weight: bolder;
+                font-size: 1em;
+                text-align: center;
+                font-weight: 700;
+                line-height: calc( 1em + 13px );
+            }
+            #tooltip-toggler {
+                background: rgba(0,0,0,0.3);
+                padding: 0px 12px;
+                margin: 4px;
+                line-height: calc( 1em + 12px );
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 700;
+                cursor: help;
+                float: right;
+            }
+            #tooltip-toggler:after {
+                display: none;
+            }
+            #rosc-lengths-data {
+                display: grid;
+                grid-template-columns: auto auto auto auto;
+            }
+            #rosc-lengths-data > span {
+                font-size: 0.7em;
+            }
+            #rosc-lengths-data > span > p {
+                display: inline-block;
+                line-height: 0.7em;
+                padding-right: 0.2em;
+            }
+            #rosc-lengths-data > span > input {
+                font-size: 0.7em;
+                width: 75px;
+                display: inline-block;
+                height: 1.1em;
+            }
+            #rosc-container #corners {
+                position: absolute;
+                top: calc( 3em + 1px ); 
+                height: calc( 100% - 7em - 1px );
+                width: 100%;
+                overflow: hidden;
+            }
+            #rosc-container #corners > span {
+                margin: 5px 0px;
+                font-weight: bolder;
+            }
+            #rosc-container #corners #add {
+                position: absolute;
+                width: 25px;
+                height: 25px;
+                top:10px;
+                right:10px;
+                background-color: #ffc700;
+                color: #000000;
+                border-style: hidden;
+                border-radius: 5px;
+                outline: transparent;
+                fill: transparent;
+                cursor:pointer;
+            }
+            #rosc-container #corners #cornerInputs {
+                height: calc( 100% - 35px );
+                overflow: auto;
+                display: grid;
+                grid-template-columns: auto auto auto;
+            }
+            #rosc-container #corners #cornerInputs div.corner {
+                position:relative;
+                width: 100%;
+                min-width:300px;
+                text-align: center;
+                font-size: 0.8em;
+                
+            }
+            #rosc-container #corners #cornerInputs div.corner input{
+                width: 120px;
+            }
+            #rosc-container #corners #cornerInputs div.corner button.sign {
+                position: absolute;
+                bottom:5px;
+                right:0px;
+                width: 25px;
+                height: 25px;
+                margin: 5px 5px;
+                background-color: #ffc700;
+                color: #000000;
+                border-style: hidden;
+                border-radius: 5px;
+                outline: transparent;
+                fill: transparent;
+                cursor:pointer;
+            }
+            #rosc-container #corners #cornerInputs div.corner > span {
+                font-weight: bolder;
+                margin-top: 15px;
+            }
+            #rosc-container #corners #cornerInputs div.corner div.dff {
+                width:300px;
+                display:inline-grid;
+                gap: 1px;
+                margin-top: 10px;
+                grid-template: repeat(3, 1fr) / 1fr repeat(2, 2fr);
+            }
+            #rosc-container #corners #cornerInputs div.corner div.dff .rise {
+                grid-column-start:2;
+            }
+            #rosc-container #corners #cornerInputs div.corner div.inv {
+                margin-top: 10px;
+                display: inline-grid;
+                gap: 1px;
+                width: 240px;
+                margin-left:30px;
+                grid-template: repeat(3, 1fr) / 1fr 2fr 1fr;
+            }
+            #rosc-container #corners #cornerInputs div.corner div.inv > span {
+                width: 60px;
+            }
+            #rosc-container #results {
+                position: absolute;
+                height:2em;
+                width:100%;
+                top: calc( 100% - 4em - 1px );
+                background-color: #0091bd;
+                color: #ffffff;
+            }
+            #rosc-container #buttons {
+                position: absolute;
+                height:2em;
+                top: calc( 100% - 2em - 1px );
+                width:100%;
+                background-color: #0091bd;
+                color: #ffffff;
+            }
+            #rosc-container #buttons button {
+                margin-top: 1em;
+                height: 2em;
+                min-width: 100px;
+                width:22%;
+                background-color: #ffc700;
+                color: #000000;
+                border-style: hidden;
+                border-radius: 5px;
+                outline: transparent;
+                fill: transparent;
+                cursor:pointer;
+                margin: 0px 2.5px;
+            }
+            @media screen and (max-width: 1200px) {
+                #rosc-container #corners #cornerInputs {
+                    grid-template-columns: auto auto auto;
+                }
+            }
+            @media screen and (max-width: 900px) {
+                #rosc-container #corners #cornerInputs {
+                    grid-template-columns: auto auto;
+                }
+            }
+            @media screen and (max-width: 600px) {
+                #rosc-container #corners #cornerInputs {
+                    grid-template-columns: auto;
+                }
+            }
+            @media screen and (max-width: 500px) {
+                #rosc-container #rosc-lengths #rosc-lengths-data {
+                    grid-template-columns: auto auto;
+                }
+                #rosc-container #corners {
+                    top: calc( 4em + 1px );
+                    height: calc( 100% - 8em - 1px );
+                }
+            }
+            @media screen and (max-width: 300px) {
+                #rosc-container #rosc-lengths #rosc-lengths-data {
+                    grid-template-columns: auto;
+                }
+                #rosc-container #corners {
+                    top: calc( 6em + 1px );
+                    height: calc( 100% - 10em - 1px );
+                }
+                #rosc-container #corners #cornerInputs {
+                    overflow-y: scroll;
+                }
+            }  
+        </style>
+    </head>
+
+    <body onload="loaded()">
+        <div id="rosc-container">
+            <div id="rosc-lengths">
+                <div id="rosc-lengths-title">
+                    <span>Ring Oscillator Chain Lengths</span>
+                    <span class="tooltip-to-left" tooltip-data="Toggle&nbsp;tooltips" id="tooltip-toggler" onclick="toggleTooltips()">?</span>
+                </div>
+                <div id="rosc-lengths-data">
+                    <span><p class="tooltip-to-bottom" tooltip-data="Length&nbsp;of&nbsp;the&nbsp;shortest&nbsp;chain">Na:</p><input id="na_len" type="text"></span>
+                    <span><p class="tooltip-to-bottom" tooltip-data="Length&nbsp;of&nbsp;the&nbsp;second&nbsp;chain">Nb:</p><input id="nb_len" type="text"></span>
+                    <span><p class="tooltip-to-bottom" tooltip-data="Length&nbsp;of&nbsp;the&nbsp;third&nbsp;chain">Nc:</p><input id="nc_len" type="text"></span>
+                    <span><p class="tooltip-to-bottom" tooltip-data="Length&nbsp;of&nbsp;the&nbsp;fourth&nbsp;chain">Nt:</p><input id="nt_len" type="text"></span>
+                </div>
+            </div>
+            <div id="corners">
+                <span>DFF Delay Times and STA Results per Corner</span>
+                <button id="add" class="sign tooltip-to-left" tooltip-data="Add&nbsp;more&nbsp;corners">+</button>
+                <div id="cornerInputs">
+                </div>
+            </div>
+            <div id="results"></div>
+            <div id="buttons">
+                <input id="input" type="file" onchange="parseFile(event)" style="display:none;" />
+                <button id="load" onclick="load()">Load</button>
+                <button id="analyze" onclick="onAnalyzeClicked()">Analyze</button>
+                <button id="save" onclick="save()">Save</button>
+                <input id="output" type="file" style="display:none;" />
+            </div>
+        </div>
+    </body>
+</html>

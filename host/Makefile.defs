@@ -68,7 +68,8 @@ ARCH_SUPPORTED = powerpc arm arm64 i686 x86 x86_64 x86win
 # x86win - compilation for x86 Windows, using MinGW toolchain.
 
 # default ARCH
-ARCH ?= powerpc
+ARCH ?= arm
+CROSS_COMPILE ?= arm-none-eabi-
 export ARCH
 #$(info ARCH=$(ARCH))
 
@@ -92,35 +93,47 @@ ifeq ($(ARCH),arm)
 	# Same requirement for arm-eabi (bare metal) due to use of RTOS (private) libc implementation
 	CFLAGS += $(if $(filter arm-eabi-,$(CROSS_COMPILE)),-ffreestanding)
 	ARCH_ENDIAN = LITTLE
-ifeq ($(CROSS_COMPILE),arm-bcm2708hardfp-linux-gnueabi-)
+	ifeq ($(CROSS_COMPILE),arm-bcm2708hardfp-linux-gnueabi-)
         # RaspberryPi (ARM11/ARMv6) support
         $(info Assuming build for RaspberryPi)
         CFLAGS += -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s
-else
-        ifeq ($(CROSS_COMPILE),arm-none-eabi-)
+	else
+    	ifeq ($(CROSS_COMPILE),arm-none-eabi-)
             # For arm-none-eabi assume cortex-m3
             ARM_CPU ?= cortex-m3
             CFLAGS += -mthumb 
-	    TEE_OS = no_os
-	endif
-	ifeq ($(CROSS_COMPILE),arm-ds5)
-	    ARM_CPU ?= $(CORTEX)
-	    CFLAGS += --thumb
+	    	TEE_OS ?= no_os
+		endif
+		ifeq ($(CROSS_COMPILE),arm-ds5)
+			# For arm-ds5 assume cortex-m3
+	    	ARM_CPU ?= cortex-m3
+	    	CFLAGS += --thumb
+			TEE_OS ?= no_os
+        endif
+		ifeq ($(CROSS_COMPILE),arm-armclang)
+			# For arm-armclang assume cortex-m33
+	    	ARM_CPU ?= cortex-m33
+	    	CFLAGS += -mthumb
+			TEE_OS ?= no_os
         endif
         # For arm-eabi- assume a15, otherwise assume a9 (zynq7000)
         ARM_CPU ?= $(if $(filter arm-eabi-,$(CROSS_COMPILE)),cortex-a15,cortex-a9)
-ifeq ($(filter arm arm-ds5 ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
-	CFLAGS += --cpu $(ARM_CPU) --littleend
-else
-        CFLAGS += -mcpu=$(ARM_CPU)
-endif
+		ifeq ($(filter arm arm-ds5 arm-armclang,$(CROSS_COMPILE)),$(CROSS_COMPILE))
+			ifeq ($(CROSS_COMPILE),arm-armclang)
+				CFLAGS += -mcpu=$(ARM_CPU) --target=arm-arm-none-eabi 
+			else
+				CFLAGS += --cpu $(ARM_CPU) --littleend
+			endif
+		else
+        	CFLAGS += -mcpu=$(ARM_CPU)
+		endif
         CFLAGS += $(if $(filter arm-eabi-,$(CROSS_COMPILE)),-DARCH_ARM -DARM_CPU_CORTEX_A15=1)
-endif
+	endif
 
-# for optee_os
-ifeq ($(CROSS_COMPILE),arm-linux-gnueabihf-)
+	# for optee_os
+	ifeq ($(CROSS_COMPILE),arm-linux-gnueabihf-)
         CFLAGS += -mfloat-abi=soft
-endif #arm-linux-gnueabihf-
+	endif #arm-linux-gnueabihf-
 
 endif #arm
 
@@ -139,14 +152,16 @@ ifeq ($(ARCH),x86win)
 	CROSS_COMPILE ?= i586-mingw32msvc-
 endif
 
-ifeq ($(filter arm arm-dsm- arm-ds5 ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
-CC_DEF = 1
-CC = armcc
-LD = armcc
-AR = armar
-ifneq ($(CROSS_COMPILE),arm-ds5)
-override TEE_OS = no_os
-endif
+ifeq ($(filter arm arm-dsm- arm-ds5 arm-armclang,$(CROSS_COMPILE)),$(CROSS_COMPILE))
+	CC_DEF = 1
+	AR = armar
+	ifeq ($(CROSS_COMPILE),arm-armclang)
+		CC = armclang
+		LD = armclang
+	else
+		CC = armcc
+		LD = armcc
+	endif
 endif
 
 # subfolder for compilation/generation outcome/objects/binaries

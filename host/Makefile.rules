@@ -31,6 +31,10 @@ else ifeq ($(CROSS_COMPILE),arm-ds5)
 MM = --mm
 CFLAGS += -D__ARM_DS5__ #--strict --strict_warnings
 ARFLAGS = -rcs
+else ifeq ($(CROSS_COMPILE),arm-armclang)
+MM = -M
+CFLAGS += -D__ARM_DS5__ #--strict --strict_warnings
+ARFLAGS = -rcs
 else ifeq ($(CROSS_COMPILE),arm)
 CFLAGS += -D__ARM_DS__ --c99 --strict --strict_warnings
 ARFLAGS = -rcs
@@ -46,8 +50,10 @@ CFLAGS += -Wwrite-strings
 CFLAGS += -Wswitch-default
 CFLAGS += -Wunreachable-code
 CFLAGS += -Winit-self
+ifneq ($(CROSS_COMPILE),arm-armclang)
 CFLAGS += -Wjump-misses-init
 CFLAGS += -Wlogical-op
+endif
 CFLAGS += -Wmissing-field-initializers
 CFLAGS += -Werror=undef
 CFLAGS += -Werror -Wfatal-errors

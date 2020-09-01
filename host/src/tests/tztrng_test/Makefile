@@ -1,10 +1,10 @@
 HOST_PROJ_ROOT ?= $(shell pwd)/../../..
 
-# this section is normaly defined by hosr/src/config. Since this makefile is the only one published we need to define these varainbles here
-ifeq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),arm-ds5 arm-none-eabi-))
-TEE_OS = freertos
-TEST_BOARD = mps2+
-TEST_PRODUCT = cc3x
+# this section is normaly defined by host/src/config. Since this makefile is the only one published we need to define these varainbles here
+ifeq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),arm-ds5 arm-armclang arm-none-eabi-))
+TEE_OS := freertos
+TEST_BOARD := mps2+
+TEST_PRODUCT := cc3x
 else 
 # TEE_OS = linux // Do not overwrite TEE_OS in case of linux values
 TEST_BOARD = zynq

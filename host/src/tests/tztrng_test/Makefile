@@ -1,7 +1,7 @@
 HOST_PROJ_ROOT ?= $(shell pwd)/../../..
 
 # this section is normaly defined by hosr/src/config. Since this makefile is the only one published we need to define these varainbles here
-ifeq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),arm-ds5 arm-none-eabi-))
+ifeq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),armcc arm-none-eabi- armclang))
 TEE_OS = freertos
 TEST_BOARD = mps2+
 TEST_PRODUCT = cc3x

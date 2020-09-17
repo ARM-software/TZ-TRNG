@@ -76,6 +76,9 @@ ifeq ($(filter $(ARCH),$(ARCH_SUPPORTED)),)
   $(error Unsupported ARCH==$(ARCH))
 endif
 
+#initiate variable to avoid concatinatation at every target level
+CFLAGS =
+
 # The following statements would be executed only if ARCH is one of the supported ones.
 ifeq ($(ARCH),powerpc)
 	CROSS_COMPILE := ppc_4xx-
@@ -84,44 +87,58 @@ ifeq ($(ARCH),powerpc)
 endif
 
 ifeq ($(ARCH),arm)
-	# Keep CROSS_COMPILE from the environment only if "arm-*" toolchain or arm toolchain
-	# This allows the caller override the default toolchain with another, such as arm-linux-androideabi-
-	CROSS_COMPILE := $(if $(filter arm arm-%,$(CROSS_COMPILE)),$(CROSS_COMPILE),arm-linux-gnueabi-)
 	# For android NDK must define -ffreestanding to be able to build with Bionic library, etc.
 	CFLAGS += $(if $(filter arm-linux-androideabi-,$(CROSS_COMPILE)),-ffreestanding)
 	# Same requirement for arm-eabi (bare metal) due to use of RTOS (private) libc implementation
 	CFLAGS += $(if $(filter arm-eabi-,$(CROSS_COMPILE)),-ffreestanding)
 	ARCH_ENDIAN = LITTLE
-ifeq ($(CROSS_COMPILE),arm-bcm2708hardfp-linux-gnueabi-)
+    ifeq ($(CROSS_COMPILE),arm-bcm2708hardfp-linux-gnueabi-)
         # RaspberryPi (ARM11/ARMv6) support
         $(info Assuming build for RaspberryPi)
         CFLAGS += -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s
-else
-        ifeq ($(CROSS_COMPILE),arm-none-eabi-)
+    else ifeq ($(CROSS_COMPILE),arm-none-eabi-)
+        ifeq ($(ARM_CPU), cortex-m33)
+            CFLAGS += -march=armv8-m.main
+            CFLAGS += -mcmse
+            CFLAGS += -DARCH_V8M
+        else
             # For arm-none-eabi assume cortex-m3
             ARM_CPU ?= cortex-m3
-            CFLAGS += -mthumb 
-	    TEE_OS = no_os
-	endif
-	ifeq ($(CROSS_COMPILE),arm-ds5)
-	    ARM_CPU ?= $(CORTEX)
-	    CFLAGS += --thumb
+            CFLAGS += -mcpu=$(ARM_CPU)
         endif
-        # For arm-eabi- assume a15, otherwise assume a9 (zynq7000)
-        ARM_CPU ?= $(if $(filter arm-eabi-,$(CROSS_COMPILE)),cortex-a15,cortex-a9)
-ifeq ($(filter arm arm-ds5 ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
-	CFLAGS += --cpu $(ARM_CPU) --littleend
-else
-        CFLAGS += -mcpu=$(ARM_CPU)
-endif
-        CFLAGS += $(if $(filter arm-eabi-,$(CROSS_COMPILE)),-DARCH_ARM -DARM_CPU_CORTEX_A15=1)
-endif
-
-# for optee_os
-ifeq ($(CROSS_COMPILE),arm-linux-gnueabihf-)
+        CFLAGS += -mthumb
+        TEE_OS = no_os
+    else ifeq ($(CROSS_COMPILE),armcc)
+        ARM_CPU ?= cortex-m3
+        CFLAGS += --cpu $(ARM_CPU) --littleend
+        CFLAGS += --thumb
+    else ifeq ($(CROSS_COMPILE),armclang)
+        ifeq ($(ARM_CPU), cortex-m33)
+            CFLAGS += -march=armv8-m.main
+            CFLAGS += -mcmse
+            CFLAGS += -mfpu=none
+            CFLAGS += -DARCH_V8M
+        else
+            ARM_CPU ?= cortex-m3
+            CFLAGS += -mcpu=$(ARM_CPU)
+        endif
+        CFLAGS += --target=arm-arm-none-eabi -mlittle-endian
+        CFLAGS += -mthumb
+        CFLAGS += -DCC_TEE -DDX_PLAT_MPS2_PLUS
+    endif
+    # For arm-eabi- assume a15, otherwise assume a9 (zynq7000)
+    ARM_CPU ?= $(if $(filter arm-eabi-,$(CROSS_COMPILE)),cortex-a15,cortex-a9)
+    ifeq ($(filter arm ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
+        CFLAGS += --cpu $(ARM_CPU) --littleend
+    endif
+    CFLAGS += $(if $(filter arm-eabi-,$(CROSS_COMPILE)),-DARCH_ARM -DARM_CPU_CORTEX_A15=1)
+    # for optee_os
+    ifeq ($(CROSS_COMPILE),arm-linux-gnueabihf-)
         CFLAGS += -mfloat-abi=soft
-endif #arm-linux-gnueabihf-
+    endif #arm-linux-gnueabihf-
 
+    export CORTEX
+    export ARM_CPU
 endif #arm
 
 ifeq ($(ARCH),arm64)
@@ -139,14 +156,21 @@ ifeq ($(ARCH),x86win)
 	CROSS_COMPILE ?= i586-mingw32msvc-
 endif
 
-ifeq ($(filter arm arm-dsm- arm-ds5 ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
+ifeq ($(filter arm arm-dsm- armcc ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
 CC_DEF = 1
 CC = armcc
 LD = armcc
 AR = armar
-ifneq ($(CROSS_COMPILE),arm-ds5)
+ifneq ($(CROSS_COMPILE),armcc)
 override TEE_OS = no_os
 endif
+endif
+
+ifeq ($(filter armclang ,$(CROSS_COMPILE)),$(CROSS_COMPILE))
+CC_DEF = 1
+CC = armclang
+LD = armlink
+AR = armar
 endif
 
 # subfolder for compilation/generation outcome/objects/binaries

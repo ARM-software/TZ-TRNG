@@ -19,25 +19,45 @@
 # DEBUG = Set to '1 to enable debug compilation
 
 # Note: Avoid choosing the same name for a library and an executable
+#Test directories for freertos
+ifeq ($(TEE_OS),freertos)
+KERNEL_LIB_DIR  = $(KERNEL_DIR)/lib
+KERNEL_TEST_DIR = $(KERNEL_DIR)/lib/tests
+endif
 
 ### Compilation flags setup ###
-CFLAGS += -c -D$(ARCH_ENDIAN)__ENDIAN -DHASLONGLONG 
+CFLAGS += -c -D$(ARCH_ENDIAN)__ENDIAN -DHASLONGLONG
 CFLAGS += $(foreach incdir,$(INCDIRS),-I$(incdir))
 ARFLAGS = rcs
 MM = -MM
 ifeq ($(CROSS_COMPILE),arm-dsm-)
 CFLAGS += -I/cadtools/arm/arm_realview/RVCT/Data/2.2/349/include/unix -D__ARM_DSM__
-else ifeq ($(CROSS_COMPILE),arm-ds5)
+else ifeq ($(CROSS_COMPILE),armcc)
 MM = --mm
-CFLAGS += -D__ARM_DS5__ #--strict --strict_warnings
+CFLAGS += -D__ARM_DS5__ --diag_error=warning #--strict --strict_warnings
 ARFLAGS = -rcs
 else ifeq ($(CROSS_COMPILE),arm)
 CFLAGS += -D__ARM_DS__ --c99 --strict --strict_warnings
 ARFLAGS = -rcs
 MM = --mm
+else ifeq ($(CROSS_COMPILE),armclang)
+CFLAGS += -Wall
+CFLAGS += -Wsign-compare
+CFLAGS += -Wextra
+CFLAGS += -Wpointer-arith
+CFLAGS += -Wcast-align
+CFLAGS += -Wstrict-prototypes
+CFLAGS += -Wwrite-strings
+CFLAGS += -Wswitch-default
+CFLAGS += -Wunreachable-code
+CFLAGS += -Winit-self
+CFLAGS += -Wmissing-field-initializers
+CFLAGS += -Werror=undef
+CFLAGS += -Werror -Wfatal-errors
+ARFLAGS = -rcs
 else
 CFLAGS += -Wall
-CFLAGS += -Wsign-compare 
+CFLAGS += -Wsign-compare
 CFLAGS += -Wextra
 CFLAGS += -Wpointer-arith
 CFLAGS += -Wcast-align
@@ -51,12 +71,16 @@ CFLAGS += -Wlogical-op
 CFLAGS += -Wmissing-field-initializers
 CFLAGS += -Werror=undef
 CFLAGS += -Werror -Wfatal-errors
+#CFLAGS += -finstrument-functions
 endif
 #CFLAGS += -D__STDC_VERSION__=19900L
 
 #ARFLAGS = rcs
-LDFLAGS = $(foreach libdir,$(LIBDIRS),-L$(libdir)) 
-LDFLAGS += $(foreach lib,$(DEPLIBS),-l$(lib)) 
+LDFLAGS = $(foreach libdir,$(LIBDIRS),-L$(libdir))
+
+LDFLAGS += -Wl,--start-group
+LDFLAGS += $(foreach lib,$(DEPLIBS),-l$(lib))
+LDFLAGS += -Wl,--end-group
 
 ifeq ($(CROSS_COMPILE),arm-none-eabi-)
 LDFLAGS += -lc -lm -lrdimon
@@ -66,12 +90,12 @@ LDFLAGS += -lpthread
 endif
 endif
 
-ifneq ($(filter $(CROSS_COMPILE),arm-dsm- arm-ds5),$(CROSS_COMPILE))
+ifneq ($(filter $(CROSS_COMPILE),arm-dsm- armcc),$(CROSS_COMPILE))
 LDFLAGS += -Wl,-rpath=.
 endif
 
 # C++ compilation
-CXXFLAGS = $(CFLAGS) 
+CXXFLAGS = $(CFLAGS)
 
 CFLAGS += -D__$(ARCH)__
 
@@ -94,7 +118,7 @@ DEPLIBS_FILES = $(foreach lib, $(strip $(DEPLIBS)), $(shell find $(LIBDIRS) -nam
 #Optimization defs
 ifeq ($(DEBUG),1)
     CFLAGS += -O0 -DDEBUG
-    ifeq ($(CROSS_COMPILE),arm-ds5)
+    ifeq ($(CROSS_COMPILE),armcc)
         CFLAGS += -g
     else
         ifneq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),arm-dsm- arm))
@@ -114,7 +138,7 @@ default: release test
 
 # Clean only build intermediate files (incl. log file) but leave released target
 clean_intermediate:
-	-$(RMDIR) $(BUILDDIR) 
+	-$(RMDIR) $(BUILDDIR)
 	-$(RM) $(LOGFILE)
 
 clean: clean_intermediate
@@ -171,7 +195,7 @@ $(1): $(RELEASE_$(2)DIR)/$($(2)PRE)$(1)$($(2)EXT)
 
 .PHONY: $(1)
 
-# Objects list for dependency generation 
+# Objects list for dependency generation
 C_SOURCES_$(1) = $$(filter %.c,$$(SOURCES_$(1)))
 CPP_SOURCES_$(1) = $$(filter %.cpp,$$(SOURCES_$(1)))
 OBJECTS_FROM_C_$(1) = $$(addprefix $(BUILDDIR)/,$$(patsubst %.c,%$(OBJEXT),$$(filter-out $(BUILDDIR)/%,$$(C_SOURCES_$(1)))))
@@ -194,16 +218,20 @@ $(foreach lib,$(TARGET_LIBS), $(eval $(call RELEASE_RULE,$(lib),LIB)))
 $(foreach lib,$(TARGET_LIBS), $(eval -include $(OBJECTS_INTERNAL_$(lib):%.o=%.dep)))
 
 
-TEST_COPY_RULE = $(call exec_logged,$(CP) $(RELEASE_LIBDIR)/$(1) $(KERNEL_TEST_DIR)/$(1))
-LIB_COPY_RULE = $(call exec_logged,$(CP) $(RELEASE_LIBDIR)/$(1) $(KERNEL_LIB_DIR)/$(1))
-
+TEST_COPY_RULE = $(if $(PROJ_TESTS),$(call exec_logged,$(CP) $(RELEASE_LIBDIR)/$(1) $(KERNEL_TEST_DIR)/$(1)),)
+LIB_COPY_RULE = $(if $(PROJ_TESTS),$(call exec_logged,$(CP) $(RELEASE_LIBDIR)/$(1) $(KERNEL_LIB_DIR)/$(1)),)
+TEST_ECHO_RULE = $(ECHO) [CP] $(RELEASE_LIBDIR)/$(1) $< --\> $(KERNEL_TEST_DIR)/$(1)
+LIB_ECHO_RULE = $(ECHO) [CP] $(RELEASE_LIBDIR)/$(1) $< --\> $(KERNEL_LIB_DIR)/$(1)
 IS_TEST = $(findstring test, $(1))
 
 # Implicit rule for libraries releasing
 $(RELEASE_LIBDIR)/$(LIBPRE)%$(LIBEXT): $(BUILDDIR)/$(LIBPRE)%$(LIBEXT) $(call DEPENDENCY_ON_EXISTENCE_OF,$(RELEASE_LIBDIR))
 	@$(ECHO) [CP] $< --\> $(RELEASE_LIBDIR)
 	@$(call exec_logged,$(CP) $< $(RELEASE_LIBDIR) )
+	@$(if $(subst freertos,,$(TEE_OS)),, $(if $(call IS_TEST,$(notdir $<)), $(call TEST_ECHO_RULE,$(notdir $<)), $(call LIB_ECHO_RULE,$(notdir $<)) ))
 	@$(if $(subst freertos,,$(TEE_OS)),, $(if $(call IS_TEST,$(notdir $<)), $(call TEST_COPY_RULE,$(notdir $<)), $(call LIB_COPY_RULE,$(notdir $<)) ))
+	@$(if $(subst freertos,,$(TEE_OS)),, $(foreach lib, $(DEPLIBS), $(ECHO) [CP] $(RELEASE_LIBDIR)/lib$(lib).a --\> $(KERNEL_LIB_DIR)/ ;))
+	@$(if $(subst freertos,,$(TEE_OS)),, $(foreach lib, $(DEPLIBS), $(CP) $(RELEASE_LIBDIR)/lib$(lib).a $(KERNEL_LIB_DIR)/ ;))
 
 ifeq ($(LIB_TYPE),dynamic)
 define LIB_LINK_RULE

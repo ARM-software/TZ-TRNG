@@ -2,7 +2,6 @@ HOST_PROJ_ROOT ?= $(shell pwd)/../../..
 
 # this section is normaly defined by hosr/src/config. Since this makefile is the only one published we need to define these varainbles here
 ifeq ($(CROSS_COMPILE),$(filter $(CROSS_COMPILE),armcc arm-none-eabi- armclang))
-TEE_OS = freertos
 TEST_BOARD = mps2+
 TEST_PRODUCT = cc3x
 else 
@@ -37,6 +36,11 @@ SOURCES_tztrng_test += tztrng_test_arm.c
 SOURCES_tztrng_test += $(filter-out board_configs.c, $(PAL_SOURCES))
 endif # pal
 endif # freertos
+
+# This specific test under no_os
+ifeq ($(TEE_OS),$(filter $(TEE_OS),no_os))
+
+endif
 
 # Sources
 SOURCES_tztrng_test += tztrng_test.c 

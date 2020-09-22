@@ -33,11 +33,11 @@ This release contains the ARM TrustZone TRNG software.
 
 * To be run on an Ubuntu 14.04 LTS system host for building. 
 
-* gcc version 4.7.3 or arm-ds5 compiler are in your PATH.
+* gcc version 4.7.3, arm-ds5 or armclang compiler are in your PATH.
 
 * If using Linux as a host on the H/W, configure the KERNEL_DIR environment variable to point to your Linux (s).
 
-* The target is running Linux kernel 4.4 or FreeRTOS.
+* The target is running Linux kernel 4.4, FreeRTOS or bare-matal OS.
 
 Download the software bundle from https://github.com/ARM-software/TZ-TRNG.
 
@@ -50,15 +50,24 @@ Download the software bundle from https://github.com/ARM-software/TZ-TRNG.
 * For a target hw system running FreeRTOS:
 ```bash
    export KERNEL_DIR=/path/to/freertos
+   export TEE_OS=freertos
 ```
 or
 
 * For a target hw system running linux:
 ```bash
    export KERNEL_DIR=/path/to/linux
+   export TEE_OS=linux
+```
+or
+
+* For a target hw system running bare-matel OS:
+```bash
+   export KERNEL_DIR=
+   export TEE_OS=no_os
 ```				
   
-**Step 3**: Build all the binaries (common for FreeRTOS and Linux):
+**Step 3**: Build all the binaries (common for FreeRTOS, Linux and bare-matel OS):
 ```bash
    cd /path/to/tztrng
    make -C host/src/tztrng_lib/ clean
@@ -74,6 +83,7 @@ The tztrng library is located in:
 The integration test executable is located in the following path:
    - When compiling with gcc: host/bin/tztrng_test.
    - When compiling with armcc: host/lib/libtztrng_test.a.
+   - When compiling with armclang: host/lib/libtztrng_test.a.
 
 
 **Step 4**: Deploy:
@@ -85,6 +95,14 @@ The integration test executable is located in the following path:
   ```
 
 * For a target hw system running FreeRTOS:
+
+  ```bash
+     cp host/lib/libcc_tztrng.a /path/to/your/library/folder
+     cp host/lib/libtztrng_test.a /path/to/your/library/folder
+     cp host/src/tests/tztrng_test/tztrng_test.h /path/to/includes
+  ```
+
+* For a target hw system running bare-matel OS:
 
   ```bash
      cp host/lib/libcc_tztrng.a /path/to/your/library/folder

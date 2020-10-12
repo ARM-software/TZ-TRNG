@@ -89,13 +89,13 @@ def check_format(path):
             # Check header
             assert 0xAABBCCDD == unpackui(args.fmt, f.read(4)), "Header check mismatch"
 
-            flags = unpackui(args.fmt , f.read(4))
+            flags = unpackui(args.fmt, f.read(4))
 
             buffSize = flags & 0x00FFFFFF
             RoscLen  = flags & 0x03000000 >> 24
-            TRNGMode = flags & 0x80000000 > 0
+            TRNGMode = flags & 0xC0000000 >> 30
 
-            sampleCnt = unpackui(args.fmt , f.read(4))
+            sampleCnt = unpackui(args.fmt, f.read(4))
 
             assert sampleCnt == int(re.match(r".*_R._S(.*)_V._T._C.*", path).group(1)), "Sample counter value does not match the value in filename!"
 

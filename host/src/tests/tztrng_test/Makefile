@@ -37,9 +37,9 @@ SOURCES_tztrng_test += $(filter-out board_configs.c, $(PAL_SOURCES))
 endif # pal
 endif # freertos
 
-# This specific test under no_os
+# Specific section for no_os: you can add your integration test files here
 ifeq ($(TEE_OS),$(filter $(TEE_OS),no_os))
-
+# It is left with no logics in purpose
 endif
 
 # Sources
